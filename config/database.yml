@@ -1,0 +1,17 @@
+postgres: &postgres
+  adapter: postgresql
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  timeout: 5000
+  user: pnikrat
+
+development:
+  <<: *postgres
+  database: magisterka_development
+
+test:
+  <<: *postgres
+  database: magisterka_test
+
+production:
+  <<: *postgres
+  database: magisterka_production
