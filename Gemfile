@@ -6,6 +6,7 @@ git_source(:github) do |repo_name|
 end
 
 gem 'bootsnap', require: false
+gem 'devise_token_auth'
 gem 'pg', '~> 0.21'
 gem 'puma', '~> 3.7'
 gem 'rails', '~> 5.1.4'
@@ -24,6 +25,7 @@ gem 'rails', '~> 5.1.4'
 
 group :development, :test do
   gem 'dotenv-rails'
+  gem 'factory_bot_rails'
   gem 'pry-byebug'
   gem 'rspec-rails', '~> 3.7'
 end
