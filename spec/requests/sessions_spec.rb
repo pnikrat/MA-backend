@@ -11,6 +11,7 @@ RSpec.describe 'User sessions' do
   let(:fake_user_credentials) do
     { email: @user.email, password: '4321rewq' }.to_json
   end
+  let(:auth_headers) { @user.create_new_auth_token }
   let(:headers) { { 'Content-Type' => 'application/json' } }
 
   context 'Sessions#create POST' do
@@ -27,6 +28,19 @@ RSpec.describe 'User sessions' do
       expect(json[:errors])
         .to include 'Invalid login credentials. Please try again.'
       expect(response.headers).not_to include 'access-token'
+    end
+  end
+
+  context 'Sessions#destroy DELETE' do
+    it 'user can sign out if is signed in and response is 200' do
+      delete destroy_user_session_path, headers: auth_headers
+      expect(response).to have_http_status(:success)
+    end
+
+    it 'user cannot sign out if not signed in and response is 404' do
+      # no access-token in headers
+      delete destroy_user_session_path, headers: headers
+      expect(response).to have_http_status(:not_found)
     end
   end
 end
