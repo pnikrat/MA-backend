@@ -16,5 +16,15 @@ FactoryBot.define do
     trait :without_first_name do
       first_name ''
     end
+
+    factory :user_with_lists do
+      transient do
+        lists_count 3
+      end
+
+      after :create do |user, options|
+        create_list :list, options.lists_count, user: user
+      end
+    end
   end
 end

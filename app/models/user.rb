@@ -5,4 +5,6 @@ class User < ActiveRecord::Base
   include DeviseTokenAuth::Concerns::User
 
   validates :first_name, presence: true
+
+  has_many :lists
 end
