@@ -1,6 +1,7 @@
 # Api controller for shopping lists
 class ListsController < ApplicationController
   before_action :authenticate_user!
+  before_action :find_list, only: %i[show update destroy]
 
   def index
     @lists = List.where(user: current_user)
@@ -8,7 +9,6 @@ class ListsController < ApplicationController
   end
 
   def show
-    @list = List.where(user: current_user).find_by(id: list_params)
     if @list.present?
       render json: @list
     else
@@ -25,6 +25,27 @@ class ListsController < ApplicationController
     end
   end
 
+  def update
+    if @list.present?
+      if @list.update(create_list_params)
+        render json: @list, status: :ok
+      else
+        render json: @list.errors, status: :bad_request
+      end
+    else
+      render status: :no_content
+    end
+  end
+
+  def destroy
+    if @list.present?
+      @list.destroy
+      render status: :ok
+    else
+      render status: :no_content
+    end
+  end
+
   private
 
   def list_params
@@ -33,5 +54,9 @@ class ListsController < ApplicationController
 
   def create_list_params
     params.permit(:name)
+  end
+
+  def find_list
+    @list = List.where(user: current_user).find_by(id: list_params)
   end
 end

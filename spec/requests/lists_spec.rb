@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Lists api interactions' do
-  before do
+  before(:all) do
     @user = FactoryBot.create(:user_with_lists)
     @no_list_user = FactoryBot.create(:user)
     @other_user = FactoryBot.create(:user_with_lists)
@@ -13,8 +13,13 @@ RSpec.describe 'Lists api interactions' do
   let(:new_invalid_list) {
     FactoryBot.attributes_for(:list, :without_name).to_json
   }
-  let(:single_list) { @user.lists.first }
-  let(:single_list_of_other_user) { @other_user.lists.first }
+  let(:update_list) {
+    FactoryBot.attributes_for(:list, :without_user, name: 'updated').to_json
+  }
+  let(:first_list) { @user.lists.first }
+  let(:second_list) { @user.lists.second }
+  let(:third_list) { @user.lists.third }
+  let(:first_list_of_other_user) { @other_user.lists.first }
 
   context 'Lists#index GET' do
     it 'gets all users list if user is signed in and responds 200 OK' do
@@ -38,19 +43,19 @@ RSpec.describe 'Lists api interactions' do
 
   context 'Lists#show GET' do
     it 'gets specific list if user is signed in and responds 200 OK' do
-      get list_path(single_list.id), headers: headers(@user)
+      get list_path(first_list.id), headers: headers(@user)
       expect(response).to have_http_status(:ok)
-      expect(json[:id]).to eq single_list.id
+      expect(json[:id]).to eq first_list.id
       expect(json[:user_id]).to eq @user.id
     end
 
     it 'doesnt get list of other user and responds with 204 No Content' do
-      get list_path(single_list_of_other_user.id), headers: headers(@user)
+      get list_path(first_list_of_other_user.id), headers: headers(@user)
       expect(response).to have_http_status(:no_content)
     end
 
     it 'responds with unauthorized if user is not signed in' do
-      get list_path(single_list.id), headers: headers
+      get list_path(first_list.id), headers: headers
       expect(response).to have_http_status(:unauthorized)
     end
   end
@@ -81,6 +86,60 @@ RSpec.describe 'Lists api interactions' do
     it 'responds with unauthorized if user is not signed in' do
       expect {
         post lists_path, params: new_list, headers: headers
+      }.not_to(change { List.count })
+      expect(response).to have_http_status(:unauthorized)
+    end
+  end
+
+  context 'Lists#update PUT' do
+    it 'updates a list and responds with 200 OK' do
+      expect {
+        put list_path(second_list.id), params: update_list,
+                                       headers: headers(@user)
+      }.not_to(change { List.count })
+      expect(response).to have_http_status(:ok)
+      expect(second_list.reload.name).to eq 'updated'
+    end
+
+    it 'does not update list of other user and responds with 204 No Content' do
+      put list_path(first_list_of_other_user.id), params: update_list,
+                                                  headers: headers(@user)
+      expect(response).to have_http_status(:no_content)
+      expect(first_list_of_other_user.reload.name).not_to eq 'updated'
+    end
+
+    it 'does not update list if params are invalid, responds with 400' do
+      put list_path(second_list.id), params: new_invalid_list,
+                                     headers: headers(@user)
+      expect(response).to have_http_status(:bad_request)
+      expect(json).to include name: ["can't be blank"]
+      expect(second_list.reload.name).not_to be_nil
+    end
+
+    it 'responds with unauthorized if user is not signed in' do
+      put list_path(second_list.id), params: update_list, headers: headers
+      expect(response).to have_http_status(:unauthorized)
+    end
+  end
+
+  context 'Lists#destroy DELETE' do
+    it 'destroys a list and responds with 200 OK' do
+      expect {
+        delete list_path(third_list.id), headers: headers(@user)
+      }.to change { List.where(user: @user).count }.by(-1)
+      expect(response).to have_http_status(:ok)
+    end
+
+    it 'does not destroy list of other user and responds with 204 No Content' do
+      expect {
+        delete list_path(first_list_of_other_user.id), headers: headers(@user)
+      }.not_to(change { List.count })
+      expect(response).to have_http_status(:no_content)
+    end
+
+    it 'responds with unauthorized if user is not signed in' do
+      expect {
+        delete list_path(third_list.id), headers: headers
       }.not_to(change { List.count })
       expect(response).to have_http_status(:unauthorized)
     end
