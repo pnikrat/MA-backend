@@ -100,6 +100,7 @@ GEM
       pry (~> 0.10)
     puma (3.11.2)
     rack (2.0.3)
+    rack-cors (1.0.2)
     rack-test (0.8.2)
       rack (>= 1.0, < 3)
     rails (5.1.4)
@@ -185,6 +186,7 @@ DEPENDENCIES
   pg (~> 0.21)
   pry-byebug
   puma (~> 3.7)
+  rack-cors
   rails (~> 5.1.4)
   rspec-rails (~> 3.7)
   spring
