@@ -17,6 +17,10 @@ FactoryBot.define do
       first_name ''
     end
 
+    trait :without_password_confirmation do
+      password_confirmation ''
+    end
+
     factory :user_with_lists do
       transient do
         lists_count 3
