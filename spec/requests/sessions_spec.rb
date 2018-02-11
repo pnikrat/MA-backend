@@ -11,8 +11,6 @@ RSpec.describe 'User sessions' do
   let(:fake_user_credentials) do
     { email: @user.email, password: '4321rewq' }.to_json
   end
-  let(:auth_headers) { @user.create_new_auth_token }
-  let(:headers) { { 'Content-Type' => 'application/json' } }
 
   context 'Sessions#create POST' do
     it 'user can sign in and response is 200' do
@@ -33,7 +31,7 @@ RSpec.describe 'User sessions' do
 
   context 'Sessions#destroy DELETE' do
     it 'user can sign out if is signed in and response is 200' do
-      delete destroy_user_session_path, headers: auth_headers
+      delete destroy_user_session_path, headers: headers(@user)
       expect(response).to have_http_status(:success)
     end
 
