@@ -22,4 +22,12 @@ class Item < ApplicationRecord
       transitions from: :to_buy, to: :missing
     end
   end
+
+  def change_state(event_name)
+    send(event_name.to_sym)
+    save
+  rescue NoMethodError
+    errors.add(:aasm_state, message: 'invalid state change')
+    false
+  end
 end
