@@ -95,10 +95,10 @@ RSpec.describe Item do
       expect {
         persisted_item.state = 'some_random_state'
         persisted_item.save
-      }.not_to(change { persisted_item.aasm_state })
+      }.not_to(change(persisted_item, :aasm_state))
       expect(persisted_item.errors.full_messages.length).to eq 1
-      expect(persisted_item.errors[:aasm_state].first)
-        .to include 'invalid state change'
+      expect(persisted_item.errors[:aasm_state].first).
+        to include 'invalid state change'
     end
 
     it 'fails to change state on invalid transition' do

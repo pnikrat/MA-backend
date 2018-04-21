@@ -35,8 +35,10 @@ Rails:
 
 RSpec/AnyInstance:
   Enabled: false
-RSpec/DescribedClass:
-  EnforcedStyle: explicit
+RSpec/ContextWording:
+  Enabled: false
+RSpec/DescribeClass:
+  Enabled: false
 RSpec/ExampleLength:
   Enabled: false
 RSpec/ExpectInHook:
