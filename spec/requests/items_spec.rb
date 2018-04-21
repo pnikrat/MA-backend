@@ -89,8 +89,8 @@ RSpec.describe 'Items api interactions' do
       expect(response).to have_http_status(:created)
       expect(json[:list_id]).to eq @list.id
       created_id = json[:id]
-      expect(response.headers.to_h)
-        .to include('Location' => list_item_url(@list.id, created_id))
+      expect(response.headers.to_h).
+        to include('Location' => list_item_url(@list.id, created_id))
     end
 
     it 'does not create item if params are invalid, responds with 400' do

@@ -1,5 +1,5 @@
 # User Devise model for authentication and basic user of the application
-class User < ActiveRecord::Base
+class User < ApplicationRecord
   devise :database_authenticatable, :registerable,
          :rememberable, :trackable, :validatable
   include DeviseTokenAuth::Concerns::User
