@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe 'User sessions' do
   before(:all) do
-    @user = FactoryBot.create(:user)
+    @user = create(:user)
   end
 
   let(:user_credentials) do

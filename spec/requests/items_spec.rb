@@ -2,33 +2,33 @@ require 'rails_helper'
 
 RSpec.describe 'Items api interactions' do
   before(:all) do
-    @list = FactoryBot.create(:list_with_items)
+    @list = create(:list_with_items)
     @user = @list.user
-    @other_list = FactoryBot.create(:list_with_items)
+    @other_list = create(:list_with_items)
   end
 
   let(:new_item) {
-    FactoryBot.attributes_for(:full_item).to_json
+    attributes_for(:full_item).to_json
   }
   let(:new_invalid_item) {
-    FactoryBot.attributes_for(:full_item, :without_name).to_json
+    attributes_for(:full_item, :without_name).to_json
   }
   let(:update_item) {
-    FactoryBot.attributes_for(:full_item, name: 'updated').to_json
+    attributes_for(:full_item, name: 'updated').to_json
   }
   let(:buy_item) {
-    FactoryBot.attributes_for(:state_change, desired_state: 'bought').to_json
+    attributes_for(:state_change, desired_state: 'bought').to_json
   }
-  let(:undo_item) { FactoryBot.attributes_for(:state_change, desired_state: 'to_buy').to_json }
+  let(:undo_item) { attributes_for(:state_change, desired_state: 'to_buy').to_json }
   let(:not_in_shop_item) do
-    FactoryBot.attributes_for(:state_change, :with_other_changes, desired_state: 'missing').to_json
+    attributes_for(:state_change, :with_other_changes, desired_state: 'missing').to_json
   end
   let(:buy_item_invalid) {
-    FactoryBot.attributes_for(:state_change, :with_invalid_event).to_json
+    attributes_for(:state_change, :with_invalid_event).to_json
   }
   let(:fake_id) { 8888 }
-  let(:empty_list) { FactoryBot.create(:list, user: @user) }
-  let(:post_list) { FactoryBot.create(:list, user: @user) }
+  let(:empty_list) { create(:list, user: @user) }
+  let(:post_list) { create(:list, user: @user) }
   let(:first_item) { @list.items.first }
   let(:second_item) { @list.items.second }
   let(:third_item) { @list.items.third }

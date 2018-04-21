@@ -2,19 +2,19 @@ require 'rails_helper'
 
 RSpec.describe 'Lists api interactions' do
   before(:all) do
-    @user = FactoryBot.create(:user_with_lists)
-    @no_list_user = FactoryBot.create(:user)
-    @other_user = FactoryBot.create(:user_with_lists)
+    @user = create(:user_with_lists)
+    @no_list_user = create(:user)
+    @other_user = create(:user_with_lists)
   end
 
   let(:new_list) {
-    FactoryBot.attributes_for(:list, :without_user).to_json
+    attributes_for(:list, :without_user).to_json
   }
   let(:new_invalid_list) {
-    FactoryBot.attributes_for(:list, :without_name).to_json
+    attributes_for(:list, :without_name).to_json
   }
   let(:update_list) {
-    FactoryBot.attributes_for(:list, :without_user, name: 'updated').to_json
+    attributes_for(:list, :without_user, name: 'updated').to_json
   }
   let(:first_list) { @user.lists.first }
   let(:second_list) { @user.lists.second }

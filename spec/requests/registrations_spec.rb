@@ -2,18 +2,18 @@ require 'rails_helper'
 
 RSpec.describe 'User registrations' do
   before(:all) do
-    @user = FactoryBot.create(:user)
+    @user = create(:user)
   end
 
-  let(:user) { FactoryBot.attributes_for(:user).to_json }
+  let(:user) { attributes_for(:user).to_json }
   let(:user_without_email) do
-    FactoryBot.attributes_for(:user, :without_email).to_json
+    attributes_for(:user, :without_email).to_json
   end
   let(:user_without_password_confirmation) do
-    FactoryBot.attributes_for(:user, :without_password_confirmation).to_json
+    attributes_for(:user, :without_password_confirmation).to_json
   end
   let(:user_with_duplicate_email) do
-    FactoryBot.attributes_for(:user, email: @user.email).to_json
+    attributes_for(:user, email: @user.email).to_json
   end
 
   context 'Registrations#create POST' do

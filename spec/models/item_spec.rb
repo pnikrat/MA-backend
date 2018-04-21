@@ -1,10 +1,10 @@
 require 'rails_helper'
 
 RSpec.describe Item do
-  let(:item) { FactoryBot.build(:item) }
-  let(:item_without_name) { FactoryBot.build(:item, :without_name) }
-  let(:item_without_list) { FactoryBot.build(:item, :without_list) }
-  let(:persisted_item) { FactoryBot.create(:item) }
+  let(:item) { build(:item) }
+  let(:item_without_name) { build(:item, :without_name) }
+  let(:item_without_list) { build(:item, :without_list) }
+  let(:persisted_item) { create(:item) }
 
   context 'basic model validations' do
     it 'is valid with list and name' do
