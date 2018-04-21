@@ -29,32 +29,86 @@ RSpec.describe Item do
       expect(item).to transition_from(:to_buy).to(:bought).on_event(:buy)
     end
 
-    it 'transitions to to_buy from bought state after cancel_buy event' do
-      expect(item).to transition_from(:bought).to(:to_buy).on_event(:cancel_buy)
+    it 'transitions to to_buy from bought or missing state after undo event' do
+      expect(item).to transition_from(:bought).to(:to_buy).on_event(:undo)
+      expect(item).to transition_from(:missing).to(:to_buy).on_event(:undo)
     end
 
     it 'transitions to missing from to_buy state after not_in_shop event' do
-      expect(item).to transition_from(:to_buy)
-        .to(:missing).on_event(:not_in_shop)
+      expect(item).to transition_from(:to_buy).to(:missing).on_event(:not_in_shop)
+    end
+
+    it 'transitions to deleted from any state after delete_item event' do
+      expect(item).to transition_from(:to_buy).to(:deleted).on_event(:delete_item)
+      expect(item).to transition_from(:bought).to(:deleted).on_event(:delete_item)
+      expect(item).to transition_from(:missing).to(:deleted).on_event(:delete_item)
+    end
+
+    it 'transitions to to_buy from deleted state after revive_item event' do
+      expect(item).to transition_from(:deleted).to(:to_buy).on_event(:revive_item)
     end
   end
 
-  context 'state changes via params' do
-    it 'changes state on proper events' do
+  context 'state changes via before_update callback' do
+    it 'changes state when passing desired destination state' do
       expect(persisted_item).to have_state(:to_buy)
-      expect(persisted_item.change_state('buy')).to eq true
+      persisted_item.state = 'bought'
+      persisted_item.save
       expect(persisted_item).to have_state(:bought)
-      persisted_item.change_state('cancel_buy')
+
+      persisted_item.state = 'to_buy'
+      persisted_item.save
       expect(persisted_item).to have_state(:to_buy)
-      persisted_item.change_state('not_in_shop')
+
+      persisted_item.state = 'missing'
+      persisted_item.save
       expect(persisted_item).to have_state(:missing)
+
+      persisted_item.state = 'to_buy'
+      persisted_item.save
+      expect(persisted_item).to have_state(:to_buy)
+
+      persisted_item.state = 'deleted'
+      persisted_item.save
+      expect(persisted_item).to have_state(:deleted)
+
+      persisted_item.state = 'to_buy'
+      persisted_item.save
+      expect(persisted_item).to have_state(:to_buy)
+
+      persisted_item.state = 'missing'
+      persisted_item.save
+      persisted_item.state = 'deleted'
+      persisted_item.save
+      expect(persisted_item).to have_state(:deleted)
+
+      persisted_item.state = 'to_buy'
+      persisted_item.save
+      persisted_item.state = 'bought'
+      persisted_item.save
+      persisted_item.state = 'deleted'
+      persisted_item.save
+      expect(persisted_item).to have_state(:deleted)
     end
 
-    it 'returns false on invalid event' do
-      expect(persisted_item.change_state('some_random_event')).to eq false
+    it 'fails to change state on invalid desired state name. Adds proper error' do
+      expect {
+        persisted_item.state = 'some_random_state'
+        persisted_item.save
+      }.not_to(change { persisted_item.aasm_state })
       expect(persisted_item.errors.full_messages.length).to eq 1
-      expect(persisted_item.errors.messages[:aasm_state].first)
-        .to include message: 'invalid state change'
+      expect(persisted_item.errors[:aasm_state].first)
+        .to include 'invalid state change'
+    end
+
+    it 'fails to change state on invalid transition' do
+      expect(persisted_item).to have_state(:to_buy)
+      persisted_item.state = 'deleted'
+      persisted_item.save
+      persisted_item.state = 'bought'
+      persisted_item.save
+      expect(persisted_item).not_to have_state(:bought)
+      expect(persisted_item).to have_state(:deleted)
     end
   end
 end

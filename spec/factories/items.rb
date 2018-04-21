@@ -17,12 +17,20 @@ FactoryBot.define do
       unit 'bottles'
     end
 
-    # state change factories
-    factory :buy do
-      state 'buy'
+    factory :state_change do
+      transient do
+        desired_state 'bought'
+      end
+
+      state { desired_state }
 
       trait :with_invalid_event do
         state 'some_random_event'
+      end
+
+      trait :with_other_changes do
+        quantity 10
+        unit 'pieces'
       end
     end
   end

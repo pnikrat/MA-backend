@@ -29,7 +29,7 @@ class ItemsController < ApplicationController
 
   def update
     if @item.present?
-      if @item.update(create_item_params)
+      if item_update!
         render json: @item, status: :ok
       else
         render json: @item.errors, status: :bad_request
@@ -74,8 +74,13 @@ class ItemsController < ApplicationController
     params.permit(:name, :quantity, :price, :unit)
   end
 
-  def toggle_item_params
+  def toggle_state_params
     params.permit(:state)
+  end
+
+  def item_update!
+    @item.state = toggle_state_params[:state] if toggle_state_params.present?
+    @item.update(create_item_params)
   end
 
   def find_list

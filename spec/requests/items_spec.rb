@@ -17,10 +17,14 @@ RSpec.describe 'Items api interactions' do
     FactoryBot.attributes_for(:full_item, name: 'updated').to_json
   }
   let(:buy_item) {
-    FactoryBot.attributes_for(:buy).to_json
+    FactoryBot.attributes_for(:state_change, desired_state: 'bought').to_json
   }
+  let(:undo_item) { FactoryBot.attributes_for(:state_change, desired_state: 'to_buy').to_json }
+  let(:not_in_shop_item) do
+    FactoryBot.attributes_for(:state_change, :with_other_changes, desired_state: 'missing').to_json
+  end
   let(:buy_item_invalid) {
-    FactoryBot.attributes_for(:buy, :with_invalid_event).to_json
+    FactoryBot.attributes_for(:state_change, :with_invalid_event).to_json
   }
   let(:fake_id) { 8888 }
   let(:empty_list) { FactoryBot.create(:list, user: @user) }
@@ -28,7 +32,6 @@ RSpec.describe 'Items api interactions' do
   let(:first_item) { @list.items.first }
   let(:second_item) { @list.items.second }
   let(:third_item) { @list.items.third }
-  let(:fourth_item) { @list.items.fourth }
   let(:item_of_other_user) { @other_list.items.first }
 
   context 'Items#index GET' do
@@ -117,10 +120,11 @@ RSpec.describe 'Items api interactions' do
         put list_item_path(@list.id, second_item),
             params: update_item,
             headers: headers(@user)
-      }.not_to(change { List.count })
+      }.not_to(change { Item.count })
       expect(response).to have_http_status(:ok)
       expect(second_item.reload.name).to eq 'updated'
       expect(second_item.quantity).to eq 14
+      expect(second_item).to have_state(:to_buy)
     end
 
     it 'does not update list if params are invalid, responds with 400' do
@@ -130,6 +134,36 @@ RSpec.describe 'Items api interactions' do
       expect(response).to have_http_status(:bad_request)
       expect(json).to include name: ["can't be blank"]
       expect(second_item.reload.name).not_to be_nil
+    end
+
+    it 'updates a state of an item alone and responds with 200 OK' do
+      expect(second_item).to have_state(:to_buy)
+      put list_item_path(@list.id, second_item), params: buy_item, headers: headers(@user)
+      expect(response).to have_http_status(:ok)
+      expect(second_item.reload).to have_state(:bought)
+      put list_item_path(@list.id, second_item), params: undo_item, headers: headers(@user)
+      expect(response).to have_http_status(:ok)
+      expect(second_item.reload).to have_state(:to_buy)
+    end
+
+    it 'updates a state of an item along with other attributes and responds with 200 OK' do
+      put list_item_path(@list.id, second_item),
+          params: not_in_shop_item,
+          headers: headers(@user)
+      expect(response).to have_http_status(:ok)
+      expect(second_item.reload.unit).to eq 'pieces'
+      expect(second_item.quantity).to eq 10
+      expect(second_item).to have_state(:missing)
+    end
+
+    it 'does not update list if desired state is invalid, responds with 400' do
+      put list_item_path(@list.id, second_item),
+          params: buy_item_invalid,
+          headers: headers(@user)
+      expect(response).to have_http_status(:bad_request)
+      expect(json).to include aasm_state: ['invalid state change']
+      expect(second_item.reload).to have_state(:to_buy)
+      expect(second_item.name).not_to eq 'still_water'
     end
   end
 
@@ -146,27 +180,6 @@ RSpec.describe 'Items api interactions' do
         delete list_item_path(@list.id, fake_id), headers: headers(@user)
       }.not_to(change { Item.count })
       expect(response).to have_http_status(:no_content)
-    end
-  end
-
-  context 'Items#toggle PUT' do
-    # this route changes the state of item
-    it 'changes item into bought from to_buy and responds with 200 OK' do
-      expect(fourth_item).to have_state(:to_buy)
-      put toggle_list_item_path(@list.id, fourth_item),
-          params: buy_item,
-          headers: headers(@user)
-      expect(response).to have_http_status(:ok)
-      expect(fourth_item.reload).to have_state(:bought)
-    end
-
-    it 'does not change item state on invalid params, responds 400' do
-      expect {
-        put toggle_list_item_path(@list.id, fourth_item),
-            params: buy_item_invalid,
-            headers: headers(@user)
-      }.not_to(change { fourth_item.reload.aasm_state })
-      expect(response).to have_http_status(:bad_request)
     end
   end
 end
