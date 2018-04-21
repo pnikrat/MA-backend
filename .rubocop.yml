@@ -1,0 +1,69 @@
+require: rubocop-rspec
+
+AllCops:
+  Exclude:
+    - bin/*
+    - config/**/*
+    - db/**/*
+    - log/**/*
+    - public/**/*
+    - tmp/**/*
+    - vendor/**/*
+
+Layout/DotPosition:
+  EnforcedStyle: trailing
+
+Metrics/BlockLength:
+  Exclude:
+    - 'db/migrate/**/*'
+    - 'config/**/*'
+    - 'spec/**/*'
+    - '**/*.rake'
+Metrics/LineLength:
+  Max: 100
+
+Metrics/MethodLength:
+  Enabled: false
+
+MethodCalledOnDoEndBlock:
+  Enabled: true
+  Exclude:
+    - 'spec/**/*'
+
+Rails:
+  Enabled: true
+
+RSpec/AnyInstance:
+  Enabled: false
+RSpec/ContextWording:
+  Enabled: false
+RSpec/DescribeClass:
+  Enabled: false
+RSpec/ExampleLength:
+  Enabled: false
+RSpec/ExpectInHook:
+  Exclude:
+    - 'spec/features/**/*'
+RSpec/HookArgument:
+  EnforcedStyle: each
+RSpec/LetSetup:
+  Enabled: false
+RSpec/MultipleExpectations:
+  Enabled: false
+RSpec/ImplicitExpect:
+  EnforcedStyle: is_expected
+RSpec/MessageSpies:
+  EnforcedStyle: receive
+RSpec/NestedGroups:
+  Enabled: false
+RSpec/NotToNot:
+  EnforcedStyle: not_to
+RSpec/VerifiedDoubles:
+  Enabled: false
+
+Style/FormatStringToken:
+  EnforcedStyle: template
+Style/BlockDelimiters:
+  Enabled: false
+  Include:
+    - 'spec/**/*'

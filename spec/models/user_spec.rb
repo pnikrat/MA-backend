@@ -1,10 +1,10 @@
 require 'rails_helper'
 
 RSpec.describe User do
-  let(:user) { FactoryBot.build(:user) }
-  let(:user_without_password) { FactoryBot.build(:user, :without_password) }
-  let(:user_without_email) { FactoryBot.build(:user, :without_email) }
-  let(:user_without_first_name) { FactoryBot.build(:user, :without_first_name) }
+  let(:user) { build(:user) }
+  let(:user_without_password) { build(:user, :without_password) }
+  let(:user_without_email) { build(:user, :without_email) }
+  let(:user_without_first_name) { build(:user, :without_first_name) }
 
   context 'basic model validations' do
     it 'user with email, password and first_name is valid' do

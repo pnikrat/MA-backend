@@ -10,5 +10,15 @@ FactoryBot.define do
     trait :without_user do
       user nil
     end
+
+    factory :list_with_items do
+      transient do
+        items_count 10
+      end
+
+      after :create do |list, options|
+        create_list :item, options.items_count, list: list
+      end
+    end
   end
 end
