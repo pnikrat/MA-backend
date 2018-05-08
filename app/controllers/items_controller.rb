@@ -5,7 +5,12 @@ class ItemsController < ApplicationController
   before_action :find_item, only: %i[show update destroy toggle]
 
   def index
-    @items = @list.items
+    @items =
+      if item_query_params.blank?
+        @list.items
+      else
+        @list.items.search(item_query_params[:name])
+      end
     render json: @items
   end
 
@@ -68,6 +73,10 @@ class ItemsController < ApplicationController
 
   def item_params
     params.require(:id)
+  end
+
+  def item_query_params
+    params.permit(:name)
   end
 
   def create_item_params

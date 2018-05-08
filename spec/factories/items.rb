@@ -33,5 +33,14 @@ FactoryBot.define do
         unit 'pieces'
       end
     end
+
+    factory :query_item do
+      transient do
+        available_names %w[coconut chocolate apple beer bread cookie aperol brocolli potatoes wine]
+      end
+
+      sequence(:name) { |n| available_names[n % 10 - 1] || "still water #{n}" }
+      sequence(:aasm_state) { |n| n.even? ? :to_buy : :deleted }
+    end
   end
 end

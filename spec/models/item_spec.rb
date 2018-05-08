@@ -6,6 +6,12 @@ RSpec.describe Item do
   let(:item_without_list) { build(:item, :without_list) }
   let(:persisted_item) { create(:item) }
 
+  let(:exact) { create(:item, name: 'coconut') }
+  let(:exact_capital) { create(:item, name: 'Coconut') }
+  let(:exact_deleted) { create(:item, name: 'apple', aasm_state: :deleted) }
+  let(:prefix1) { create(:item, name: 'white beans') }
+  let(:prefix2) { create(:item, name: 'white chocolate') }
+
   context 'basic model validations' do
     it 'is valid with list and name' do
       expect(item).to be_valid
@@ -109,6 +115,34 @@ RSpec.describe Item do
       persisted_item.save
       expect(persisted_item).not_to have_state(:bought)
       expect(persisted_item).to have_state(:deleted)
+    end
+  end
+
+  context 'search by name function' do
+    it 'finds items by exact query' do
+      expect(described_class.search_by_name('coconut')).to eq [exact]
+    end
+
+    it 'finds deleted items by exact query using model class method' do
+      expect(described_class.search('apple')).to eq [exact_deleted]
+    end
+
+    it 'finds item ignoring case' do
+      expect(described_class.search_by_name('Coconut')).to eq [exact, exact_capital]
+    end
+
+    it 'does not search across items with non-deleted state using model class method' do
+      exact
+      expect(described_class.search('coconut')).to be_empty
+    end
+
+    it 'finds relevant items when searching by prefix' do
+      match = [prefix1, prefix2]
+      expect(described_class.search_by_name('white')).to eq match
+    end
+
+    it 'finds relevant item when search query is multi word' do
+      expect(described_class.search_by_name('white choc')).to eq [prefix2]
     end
   end
 end

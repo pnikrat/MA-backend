@@ -9,26 +9,20 @@ RSpec.describe 'Items api interactions' do
   let(:list) { create(:list_with_items) }
   let(:user) { list.user }
   let(:other_list) { create(:list_with_items) }
+  let(:list_queried) { create(:list_with_items, :query_items) }
+  let(:search_result) do
+    [list_queried.items.find_by(name: 'apple'), list_queried.items.find_by(name: 'aperol')]
+  end
 
-  let(:new_item) {
-    attributes_for(:full_item).to_json
-  }
-  let(:new_invalid_item) {
-    attributes_for(:full_item, :without_name).to_json
-  }
-  let(:update_item) {
-    attributes_for(:full_item, name: 'updated').to_json
-  }
-  let(:buy_item) {
-    attributes_for(:state_change, desired_state: 'bought').to_json
-  }
+  let(:new_item) { attributes_for(:full_item).to_json }
+  let(:new_invalid_item) { attributes_for(:full_item, :without_name).to_json }
+  let(:update_item) { attributes_for(:full_item, name: 'updated').to_json }
+  let(:buy_item) { attributes_for(:state_change, desired_state: 'bought').to_json }
   let(:undo_item) { attributes_for(:state_change, desired_state: 'to_buy').to_json }
   let(:not_in_shop_item) do
     attributes_for(:state_change, :with_other_changes, desired_state: 'missing').to_json
   end
-  let(:buy_item_invalid) {
-    attributes_for(:state_change, :with_invalid_event).to_json
-  }
+  let(:buy_item_invalid) { attributes_for(:state_change, :with_invalid_event).to_json }
   let(:fake_id) { 8888 }
   let(:empty_list) { create(:list, user: user) }
   let(:post_list) { create(:list, user: user) }
@@ -59,6 +53,31 @@ RSpec.describe 'Items api interactions' do
     it 'responds with unauthorized if user is not signed in' do
       get list_items_path(list.id), headers: headers
       expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'gets queried items from list when passed search query and responds 200 OK' do
+      get list_items_path(list_queried.id),
+          params: { name: 'coconut' }, headers: headers(list_queried.user)
+      expect(response).to have_http_status(:ok)
+      expect(json.length).to eq 1
+      expect(json[0][:id]).to eq list_queried.items.find_by(name: 'coconut').id
+      expect(json[0][:list_id]).to eq list_queried.id
+    end
+
+    it 'gets multiple queried items from list when passed prefix query and responds 200 OK' do
+      get list_items_path(list_queried.id),
+          params: { name: 'ap' }, headers: headers(list_queried.user)
+      expect(response).to have_http_status(:ok)
+      expect(json.length).to eq 2
+      expect(json.map { |i| i[:id] }).to eq search_result.map(&:id)
+      expect(json.map { |i| i[:list_id] }).to eq search_result.map(&:list_id)
+    end
+
+    it 'returns empty array if query does not match any items from list and responds 200 OK' do
+      get list_items_path(list_queried.id),
+          params: { name: 'unuseful' }, headers: headers(list_queried.user)
+      expect(response).to have_http_status(:ok)
+      expect(json.length).to eq 0
     end
   end
 
