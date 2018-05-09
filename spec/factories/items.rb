@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :item do
     list
-    name 'still water'
+    sequence(:name) { |n| "still water #{n}" }
 
     trait :without_name do
       name nil

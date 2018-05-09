@@ -1,7 +1,10 @@
 require 'rails_helper'
 
 RSpec.describe Item do
-  let(:item) { build(:item) }
+  let(:list) { create(:list) }
+  let(:list2) { create(:list) }
+  let(:item) { build(:item, list: list) }
+  let(:duplicate_name) { build(:item, list: list) }
   let(:item_without_name) { build(:item, :without_name) }
   let(:item_without_list) { build(:item, :without_list) }
   let(:persisted_item) { create(:item) }
@@ -23,6 +26,27 @@ RSpec.describe Item do
 
     it 'is not valid without list' do
       expect(item_without_list).not_to be_valid
+    end
+
+    it 'is not valid with the same name on one list' do
+      expect(duplicate_name).to be_valid
+      duplicate_name.name = item.name
+      item.save
+      expect(duplicate_name).not_to be_valid
+    end
+
+    it 'is not valid with same name but different case on one list' do
+      expect(duplicate_name).to be_valid
+      duplicate_name.name = item.name.capitalize
+      item.save
+      expect(duplicate_name).not_to be_valid
+    end
+
+    it 'is valid with same name but on different lists' do
+      duplicate_name.assign_attributes(name: item.name, list_id: list2.id)
+      item.save
+      expect(duplicate_name).to be_valid
+      expect(duplicate_name.save).to be true
     end
   end
 

@@ -36,7 +36,7 @@ RSpec.describe 'Items api interactions' do
       get list_items_path(list.id), headers: headers(user)
       expect(response).to have_http_status(:ok)
       expect(json.length).to eq 10
-      expect(json[0]).to include(name: 'still water')
+      expect(json[0]).to include(list_id: list.id)
     end
 
     it 'returns 204 No content if there is no list with given id' do

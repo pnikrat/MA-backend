@@ -13,6 +13,7 @@ class Item < ApplicationRecord
   }.freeze
 
   validates :name, presence: true, length: { maximum: 60 }
+  validates :name, uniqueness: { scope: :list_id, case_sensitive: false }
 
   belongs_to :list
 
