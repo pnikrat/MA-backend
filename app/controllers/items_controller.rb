@@ -2,14 +2,15 @@
 class ItemsController < ApplicationController
   before_action :authenticate_user!
   before_action :find_list
-  before_action :find_item, only: %i[show update destroy toggle]
+  before_action :find_item, only: %i[show update destroy]
+  before_action :find_items, only: %i[mass_action]
 
   def index
     @items =
-      if item_query_params.blank?
+      if params[:name].blank?
         @list.items
       else
-        @list.items.search(item_query_params[:name])
+        @list.items.search(params[:name])
       end
     render json: @items
   end
@@ -34,7 +35,7 @@ class ItemsController < ApplicationController
 
   def update
     if @item.present?
-      if item_update!
+      if item_update
         render json: @item, status: :ok
       else
         render json: @item.errors, status: :bad_request
@@ -53,12 +54,12 @@ class ItemsController < ApplicationController
     end
   end
 
-  def toggle
-    if @item.present?
-      if @item.change_state(toggle_item_params[:state])
-        render json: @item, status: :ok
+  def mass_action
+    if @items.present?
+      if items_update
+        render json: @items, status: :ok
       else
-        render json: @item.errors, status: :bad_request
+        render json: map_errors, status: :bad_request
       end
     else
       render status: :no_content
@@ -67,37 +68,39 @@ class ItemsController < ApplicationController
 
   private
 
-  def list_params
-    params.require(:list_id)
-  end
-
-  def item_params
-    params.require(:id)
-  end
-
-  def item_query_params
-    params.permit(:name)
-  end
-
   def create_item_params
     params.permit(:name, :quantity, :price, :unit)
   end
 
-  def toggle_state_params
-    params.permit(:state)
+  def item_update(item = nil)
+    item ||= @item
+    item.state = params[:state] if params[:state].present?
+    item.update(create_item_params)
   end
 
-  def item_update!
-    @item.state = toggle_state_params[:state] if toggle_state_params.present?
-    @item.update(create_item_params)
+  def items_update
+    Item.transaction do
+      @items.each do |i|
+        update_successful = item_update i
+        raise ActiveRecord::Rollback unless update_successful
+      end
+    end
   end
 
   def find_list
-    @list = List.where(user: current_user).find_by(id: list_params)
+    @list = List.where(user: current_user).find_by(id: params[:list_id])
     render status: :no_content if @list.nil?
   end
 
   def find_item
-    @item = Item.where(list: @list).find_by(id: item_params)
+    @item = Item.where(list: @list).find_by(id: params[:id])
+  end
+
+  def find_items
+    @items = Item.where(list: @list, id: params[:ids])
+  end
+
+  def map_errors
+    @items.map { |i| [i, i.errors] }
   end
 end

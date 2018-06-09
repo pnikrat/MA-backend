@@ -1,8 +1,9 @@
 Rails.application.routes.draw do
   resources :lists do
     resources :items do
-      member do
-        put 'toggle'
+      collection do
+        put :update, action: :mass_action
+        patch :update, action: :mass_action
       end
     end
   end

@@ -23,6 +23,7 @@ RSpec.describe 'Items api interactions' do
     attributes_for(:state_change, :with_other_changes, desired_state: 'missing').to_json
   end
   let(:buy_item_invalid) { attributes_for(:state_change, :with_invalid_event).to_json }
+  let(:mass_ids) { list.items.first(3).pluck(:id) }
   let(:fake_id) { 8888 }
   let(:empty_list) { create(:list, user: user) }
   let(:post_list) { create(:list, user: user) }
@@ -186,6 +187,50 @@ RSpec.describe 'Items api interactions' do
       expect(json).to include aasm_state: ['invalid state change']
       expect(second_item.reload).to have_state(:to_buy)
       expect(second_item.name).not_to eq 'still_water'
+    end
+  end
+
+  context 'Items#mass_action PUT' do
+    it 'updates several items and responds 200 OK' do
+      expect {
+        put list_items_path(list.id),
+            params: { ids: mass_ids, unit: 'pieces', state: 'bought' }.to_json,
+            headers: headers(user)
+      }.not_to(change(Item, :count))
+      expect(response).to have_http_status(:ok)
+      expect(json.length).to eq 3
+      expect(first_item.reload.aasm_state).to eq 'bought'
+      expect(third_item.reload.aasm_state).to eq 'bought'
+    end
+
+    it 'does not update any item if all updates have errors and responds 400' do
+      list.items.last.update(name: 'occupied')
+      put list_items_path(list.id),
+          params: { ids: mass_ids, name: 'occupied' }.to_json,
+          headers: headers(user)
+      expect(response).to have_http_status(:bad_request)
+      expect(json.first.last).to include name: ['has already been taken']
+      expect(first_item.reload.name).not_to eq 'occupied'
+      expect(third_item.reload.name).not_to eq 'occupied'
+    end
+
+    it 'does not update any item if one of them has errors and responds 400' do
+      first_item.update(aasm_state: 'deleted')
+      expect(first_item.reload.aasm_state).to eq 'deleted'
+      put list_items_path(list.id),
+          params: { ids: mass_ids, state: 'bought' }.to_json,
+          headers: headers(user)
+      expect(response).to have_http_status :bad_request
+      expect(json.first.last).to include aasm_state: ['invalid state change']
+      expect(first_item.reload.aasm_state).to eq 'deleted'
+      expect(third_item.reload.aasm_state).to eq 'to_buy'
+    end
+
+    it 'returns 204 No Content if none of the items exist' do
+      put list_items_path(list.id),
+          params: { ids: [fake_id, fake_id + 1] }.to_json,
+          headers: headers(user)
+      expect(response).to have_http_status :no_content
     end
   end
 
