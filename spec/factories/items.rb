@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :item do
     list
-    name 'still water'
+    sequence(:name) { |n| "still water #{n}" }
 
     trait :without_name do
       name nil
@@ -32,6 +32,15 @@ FactoryBot.define do
         quantity 10
         unit 'pieces'
       end
+    end
+
+    factory :query_item do
+      transient do
+        available_names %w[coconut chocolate apple beer bread cookie aperol brocolli potatoes wine]
+      end
+
+      sequence(:name) { |n| available_names[n % 10 - 1] || "still water #{n}" }
+      sequence(:aasm_state) { |n| n.even? ? :to_buy : :deleted }
     end
   end
 end

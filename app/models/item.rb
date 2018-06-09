@@ -1,6 +1,9 @@
 # Shopping item model
 class Item < ApplicationRecord
   include AASM
+  include PgSearch
+  pg_search_scope :search_by_name, against: :name, using: { tsearch: { prefix: true } }
+  scope :deleted, -> { where(aasm_state: 'deleted') }
 
   STATE_EVENT = {
     to_buy: %i[undo revive_item],
@@ -10,6 +13,7 @@ class Item < ApplicationRecord
   }.freeze
 
   validates :name, presence: true, length: { maximum: 60 }
+  validates :name, uniqueness: { scope: :list_id, case_sensitive: false }
 
   belongs_to :list
 
@@ -40,6 +44,10 @@ class Item < ApplicationRecord
     event :revive_item do
       transitions from: :deleted, to: :to_buy
     end
+  end
+
+  def self.search(query)
+    deleted.search_by_name(query)
   end
 
   private

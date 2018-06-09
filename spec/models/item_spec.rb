@@ -1,10 +1,19 @@
 require 'rails_helper'
 
 RSpec.describe Item do
-  let(:item) { build(:item) }
+  let(:list) { create(:list) }
+  let(:list2) { create(:list) }
+  let(:item) { build(:item, list: list) }
+  let(:duplicate_name) { build(:item, list: list) }
   let(:item_without_name) { build(:item, :without_name) }
   let(:item_without_list) { build(:item, :without_list) }
   let(:persisted_item) { create(:item) }
+
+  let(:exact) { create(:item, name: 'coconut') }
+  let(:exact_capital) { create(:item, name: 'Coconut') }
+  let(:exact_deleted) { create(:item, name: 'apple', aasm_state: :deleted) }
+  let(:prefix1) { create(:item, name: 'white beans') }
+  let(:prefix2) { create(:item, name: 'white chocolate') }
 
   context 'basic model validations' do
     it 'is valid with list and name' do
@@ -17,6 +26,27 @@ RSpec.describe Item do
 
     it 'is not valid without list' do
       expect(item_without_list).not_to be_valid
+    end
+
+    it 'is not valid with the same name on one list' do
+      expect(duplicate_name).to be_valid
+      duplicate_name.name = item.name
+      item.save
+      expect(duplicate_name).not_to be_valid
+    end
+
+    it 'is not valid with same name but different case on one list' do
+      expect(duplicate_name).to be_valid
+      duplicate_name.name = item.name.capitalize
+      item.save
+      expect(duplicate_name).not_to be_valid
+    end
+
+    it 'is valid with same name but on different lists' do
+      duplicate_name.assign_attributes(name: item.name, list_id: list2.id)
+      item.save
+      expect(duplicate_name).to be_valid
+      expect(duplicate_name.save).to be true
     end
   end
 
@@ -109,6 +139,34 @@ RSpec.describe Item do
       persisted_item.save
       expect(persisted_item).not_to have_state(:bought)
       expect(persisted_item).to have_state(:deleted)
+    end
+  end
+
+  context 'search by name function' do
+    it 'finds items by exact query' do
+      expect(described_class.search_by_name('coconut')).to eq [exact]
+    end
+
+    it 'finds deleted items by exact query using model class method' do
+      expect(described_class.search('apple')).to eq [exact_deleted]
+    end
+
+    it 'finds item ignoring case' do
+      expect(described_class.search_by_name('Coconut')).to eq [exact, exact_capital]
+    end
+
+    it 'does not search across items with non-deleted state using model class method' do
+      exact
+      expect(described_class.search('coconut')).to be_empty
+    end
+
+    it 'finds relevant items when searching by prefix' do
+      match = [prefix1, prefix2]
+      expect(described_class.search_by_name('white')).to eq match
+    end
+
+    it 'finds relevant item when search query is multi word' do
+      expect(described_class.search_by_name('white choc')).to eq [prefix2]
     end
   end
 end

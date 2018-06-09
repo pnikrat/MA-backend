@@ -14,10 +14,16 @@ FactoryBot.define do
     factory :list_with_items do
       transient do
         items_count 10
+        regular true
+      end
+
+      trait :query_items do
+        regular false
       end
 
       after :create do |list, options|
-        create_list :item, options.items_count, list: list
+        factory_symbol = options.regular ? :item : :query_item
+        create_list factory_symbol, options.items_count, list: list
       end
     end
   end
