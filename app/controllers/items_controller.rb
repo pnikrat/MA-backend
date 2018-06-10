@@ -4,6 +4,9 @@ class ItemsController < ApplicationController
   before_action :find_list
   before_action :find_item, only: %i[show update destroy]
   before_action :find_items, only: %i[mass_action]
+  before_action :find_target_list, only: %i[mass_action update]
+
+  include JSONErrors
 
   def index
     @items =
@@ -35,7 +38,9 @@ class ItemsController < ApplicationController
 
   def update
     if @item.present?
-      if item_update
+      if !can_access_target_list?
+        render json: unauthorized_error, status: :unauthorized
+      elsif item_update
         render json: @item, status: :ok
       else
         render json: @item.errors, status: :bad_request
@@ -56,7 +61,9 @@ class ItemsController < ApplicationController
 
   def mass_action
     if @items.present?
-      if items_update
+      if !can_access_target_list?
+        render json: unauthorized_error, status: :unauthorized
+      elsif items_update
         render json: @items, status: :ok
       else
         render json: map_errors, status: :bad_request
@@ -72,8 +79,14 @@ class ItemsController < ApplicationController
     params.permit(:name, :quantity, :price, :unit)
   end
 
+  def can_access_target_list?
+    return true if @target_list.blank?
+    @target_list.user.eql?(current_user)
+  end
+
   def item_update(item = nil)
     item ||= @item
+    item.list = @target_list if @target_list.present?
     item.state = params[:state] if params[:state].present?
     item.update(create_item_params)
   end
@@ -98,6 +111,11 @@ class ItemsController < ApplicationController
 
   def find_items
     @items = Item.where(list: @list, id: params[:ids])
+  end
+
+  def find_target_list
+    return if params[:target_list].blank?
+    @target_list = List.find(params[:target_list])
   end
 
   def map_errors

@@ -8,6 +8,7 @@ RSpec.describe 'Items api interactions' do
 
   let(:list) { create(:list_with_items) }
   let(:user) { list.user }
+  let(:list2) { create(:list, user: user, name: 'user list2') }
   let(:other_list) { create(:list_with_items) }
   let(:list_queried) { create(:list_with_items, :query_items) }
   let(:search_result) do
@@ -17,6 +18,7 @@ RSpec.describe 'Items api interactions' do
   let(:new_item) { attributes_for(:full_item).to_json }
   let(:new_invalid_item) { attributes_for(:full_item, :without_name).to_json }
   let(:update_item) { attributes_for(:full_item, name: 'updated').to_json }
+  let(:update_item_list) { attributes_for(:item, name: 'in_new_list') }
   let(:buy_item) { attributes_for(:state_change, desired_state: 'bought').to_json }
   let(:undo_item) { attributes_for(:state_change, desired_state: 'to_buy').to_json }
   let(:not_in_shop_item) do
@@ -159,6 +161,43 @@ RSpec.describe 'Items api interactions' do
       expect(second_item.reload.name).not_to be_nil
     end
 
+    it 'updates item list if list belongs to current user and target_list param present. 200 OK' do
+      expect {
+        put list_item_path(list.id, second_item),
+            params: update_item_list.merge(target_list: list2.id).to_json,
+            headers: headers(user)
+      }.to change { list2.items.count }.by 1
+      expect(response).to have_http_status :ok
+      expect(second_item.reload.list_id).to eq list2.id
+      expect(second_item.name).to eq 'in_new_list'
+      expect(list.items).not_to include second_item
+    end
+
+    it 'does not update item list if no target list param is present. 200 OK' do
+      expect {
+        put list_item_path(list.id, second_item),
+            params: update_item_list.to_json,
+            headers: headers(user)
+      }.not_to change(list2.items, :count)
+      expect(response).to have_http_status :ok
+      expect(second_item.reload.list_id).to eq list.id
+      expect(second_item.name).to eq 'in_new_list'
+      expect(list.items).to include second_item
+    end
+
+    it 'does not update item list if target list belongs to another user. 401 Unauthorized' do
+      expect {
+        put list_item_path(list.id, second_item),
+            params: update_item_list.merge(target_list: other_list.id).to_json,
+            headers: headers(user)
+      }.not_to change(other_list.items, :count)
+      expect(response).to have_http_status :unauthorized
+      expect(json).to include errors: 'unauthorized access'
+      expect(second_item.reload.list_id).to eq list.id
+      expect(second_item.name).not_to eq 'in_new_list'
+      expect(list.items).to include second_item
+    end
+
     it 'updates a state of an item alone and responds with 200 OK' do
       expect(second_item).to have_state(:to_buy)
       put list_item_path(list.id, second_item), params: buy_item, headers: headers(user)
@@ -201,6 +240,27 @@ RSpec.describe 'Items api interactions' do
       expect(json.length).to eq 3
       expect(first_item.reload.aasm_state).to eq 'bought'
       expect(third_item.reload.aasm_state).to eq 'bought'
+    end
+
+    it 'updates list_id of several items and responds 200 OK' do
+      expect {
+        put list_items_path(list.id),
+            params: { ids: mass_ids, target_list: list2.id }.to_json,
+            headers: headers(user)
+      }.to change { list2.items.count }.by 3
+      expect(response).to have_http_status :ok
+      expect(list.items.count).to eq 7
+    end
+
+    it 'doesnt update list_id of items if target_list is other users list. 401 Unauthorized' do
+      expect {
+        put list_items_path(list.id),
+            params: { ids: mass_ids, target_list: other_list.id }.to_json,
+            headers: headers(user)
+      }.not_to change list2.items, :count
+      expect(response).to have_http_status :unauthorized
+      expect(list.items.count).to eq 10
+      expect(json).to include errors: 'unauthorized access'
     end
 
     it 'does not update any item if all updates have errors and responds 400' do
