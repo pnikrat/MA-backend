@@ -43,7 +43,7 @@ class ItemsController < ApplicationController
       elsif item_update
         render json: @item, status: :ok
       else
-        render json: @item.errors, status: :bad_request
+        render json: errors(@item), status: :bad_request
       end
     else
       render status: :no_content
@@ -66,7 +66,7 @@ class ItemsController < ApplicationController
       elsif items_update
         render json: @items, status: :ok
       else
-        render json: map_errors, status: :bad_request
+        render json: custom_error(map_errors), status: :bad_request
       end
     else
       render status: :no_content
@@ -119,6 +119,6 @@ class ItemsController < ApplicationController
   end
 
   def map_errors
-    @items.map { |i| [i, i.errors] }
+    @items.map { |i| i.errors.full_messages }.flatten.compact
   end
 end

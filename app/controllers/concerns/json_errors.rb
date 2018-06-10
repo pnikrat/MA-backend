@@ -9,5 +9,20 @@ module JSONErrors
         errors: 'unauthorized access'
       }
     end
+
+    def errors(obj)
+      raise ArgumentError, 'Object does not contain errors' if obj.errors.blank?
+      {
+        status: 'failed',
+        errors: obj.errors.full_messages
+      }
+    end
+
+    def custom_error(error_msg)
+      {
+        status: 'failed',
+        errors: error_msg
+      }
+    end
   end
 end
