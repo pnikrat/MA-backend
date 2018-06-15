@@ -8,6 +8,7 @@ RSpec.describe 'Items api interactions' do
 
   let(:list) { create(:list_with_items) }
   let(:user) { list.user }
+  let(:list2) { create(:list, user: user, name: 'user list2') }
   let(:other_list) { create(:list_with_items) }
   let(:list_queried) { create(:list_with_items, :query_items) }
   let(:search_result) do
@@ -17,12 +18,14 @@ RSpec.describe 'Items api interactions' do
   let(:new_item) { attributes_for(:full_item).to_json }
   let(:new_invalid_item) { attributes_for(:full_item, :without_name).to_json }
   let(:update_item) { attributes_for(:full_item, name: 'updated').to_json }
+  let(:update_item_list) { attributes_for(:item, name: 'in_new_list') }
   let(:buy_item) { attributes_for(:state_change, desired_state: 'bought').to_json }
   let(:undo_item) { attributes_for(:state_change, desired_state: 'to_buy').to_json }
   let(:not_in_shop_item) do
     attributes_for(:state_change, :with_other_changes, desired_state: 'missing').to_json
   end
   let(:buy_item_invalid) { attributes_for(:state_change, :with_invalid_event).to_json }
+  let(:mass_ids) { list.items.first(3).pluck(:id) }
   let(:fake_id) { 8888 }
   let(:empty_list) { create(:list, user: user) }
   let(:post_list) { create(:list, user: user) }
@@ -154,8 +157,57 @@ RSpec.describe 'Items api interactions' do
           params: new_invalid_item,
           headers: headers(user)
       expect(response).to have_http_status(:bad_request)
-      expect(json).to include name: ["can't be blank"]
+      expect(json[:errors]).to include "Name can't be blank"
       expect(second_item.reload.name).not_to be_nil
+    end
+
+    it 'updates item list if list belongs to current user and target_list param present. 200 OK' do
+      expect {
+        put list_item_path(list.id, second_item),
+            params: update_item_list.merge(target_list: list2.id).to_json,
+            headers: headers(user)
+      }.to change { list2.items.count }.by 1
+      expect(response).to have_http_status :ok
+      expect(second_item.reload.list_id).to eq list2.id
+      expect(second_item.name).to eq 'in_new_list'
+      expect(list.items).not_to include second_item
+    end
+
+    it 'does not update item list if no target list param is present. 200 OK' do
+      expect {
+        put list_item_path(list.id, second_item),
+            params: update_item_list.to_json,
+            headers: headers(user)
+      }.not_to change list2.items, :count
+      expect(response).to have_http_status :ok
+      expect(second_item.reload.list_id).to eq list.id
+      expect(second_item.name).to eq 'in_new_list'
+      expect(list.items).to include second_item
+    end
+
+    it 'doesnt update item list if there is already item with same name in target list. 400' do
+      list2.items.create(name: second_item.name)
+      expect {
+        put list_item_path(list.id, second_item),
+            params: { target_list: list2.id }.to_json,
+            headers: headers(user)
+      }.not_to change list2.items, :count
+      expect(response).to have_http_status :bad_request
+      expect(json[:errors]).to include 'Name has already been taken'
+      expect(second_item.reload.list_id).to eq list.id
+    end
+
+    it 'does not update item list if target list belongs to another user. 401 Unauthorized' do
+      expect {
+        put list_item_path(list.id, second_item),
+            params: update_item_list.merge(target_list: other_list.id).to_json,
+            headers: headers(user)
+      }.not_to change(other_list.items, :count)
+      expect(response).to have_http_status :unauthorized
+      expect(json).to include errors: 'unauthorized access'
+      expect(second_item.reload.list_id).to eq list.id
+      expect(second_item.name).not_to eq 'in_new_list'
+      expect(list.items).to include second_item
     end
 
     it 'updates a state of an item alone and responds with 200 OK' do
@@ -183,9 +235,86 @@ RSpec.describe 'Items api interactions' do
           params: buy_item_invalid,
           headers: headers(user)
       expect(response).to have_http_status(:bad_request)
-      expect(json).to include aasm_state: ['invalid state change']
+      expect(json[:errors]).to include 'Aasm state invalid state change'
       expect(second_item.reload).to have_state(:to_buy)
       expect(second_item.name).not_to eq 'still_water'
+    end
+  end
+
+  context 'Items#mass_action PUT' do
+    it 'updates several items and responds 200 OK' do
+      expect {
+        put list_items_path(list.id),
+            params: { ids: mass_ids, unit: 'pieces', state: 'bought' }.to_json,
+            headers: headers(user)
+      }.not_to(change(Item, :count))
+      expect(response).to have_http_status(:ok)
+      expect(json.length).to eq 3
+      expect(first_item.reload.aasm_state).to eq 'bought'
+      expect(third_item.reload.aasm_state).to eq 'bought'
+    end
+
+    it 'updates list_id of several items and responds 200 OK' do
+      expect {
+        put list_items_path(list.id),
+            params: { ids: mass_ids, target_list: list2.id }.to_json,
+            headers: headers(user)
+      }.to change { list2.items.count }.by 3
+      expect(response).to have_http_status :ok
+      expect(list.items.count).to eq 7
+    end
+
+    it 'doesnt update list_id of items if target_list is other users list. 401 Unauthorized' do
+      expect {
+        put list_items_path(list.id),
+            params: { ids: mass_ids, target_list: other_list.id }.to_json,
+            headers: headers(user)
+      }.not_to change list2.items, :count
+      expect(response).to have_http_status :unauthorized
+      expect(list.reload.items.count).to eq 10
+      expect(json).to include errors: 'unauthorized access'
+    end
+
+    it 'doesnt update list_id of items if target_list contains at least one same item. 400' do
+      list2.items.create(name: Item.find(mass_ids.first).name)
+      expect {
+        put list_items_path(list.id),
+            params: { ids: mass_ids, target_list: list2.id }.to_json,
+            headers: headers(user)
+      }.not_to change list2.items, :count
+      expect(response).to have_http_status :bad_request
+      expect(list.reload.items.count).to eq 10
+      expect(json[:errors]).to include 'Name has already been taken'
+    end
+
+    it 'does not update any item if all updates have errors and responds 400' do
+      list.items.last.update(name: 'occupied')
+      put list_items_path(list.id),
+          params: { ids: mass_ids, name: 'occupied' }.to_json,
+          headers: headers(user)
+      expect(response).to have_http_status(:bad_request)
+      expect(json[:errors]).to include 'Name has already been taken'
+      expect(first_item.reload.name).not_to eq 'occupied'
+      expect(third_item.reload.name).not_to eq 'occupied'
+    end
+
+    it 'does not update any item if one of them has errors and responds 400' do
+      first_item.update(aasm_state: 'deleted')
+      expect(first_item.reload.aasm_state).to eq 'deleted'
+      put list_items_path(list.id),
+          params: { ids: mass_ids, state: 'bought' }.to_json,
+          headers: headers(user)
+      expect(response).to have_http_status :bad_request
+      expect(json[:errors]).to include 'Aasm state invalid state change'
+      expect(first_item.reload.aasm_state).to eq 'deleted'
+      expect(third_item.reload.aasm_state).to eq 'to_buy'
+    end
+
+    it 'returns 204 No Content if none of the items exist' do
+      put list_items_path(list.id),
+          params: { ids: [fake_id, fake_id + 1] }.to_json,
+          headers: headers(user)
+      expect(response).to have_http_status :no_content
     end
   end
 

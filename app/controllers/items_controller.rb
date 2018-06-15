@@ -2,14 +2,18 @@
 class ItemsController < ApplicationController
   before_action :authenticate_user!
   before_action :find_list
-  before_action :find_item, only: %i[show update destroy toggle]
+  before_action :find_item, only: %i[show update destroy]
+  before_action :find_items, only: %i[mass_action]
+  before_action :find_target_list, only: %i[mass_action update]
+
+  include JSONErrors
 
   def index
     @items =
-      if item_query_params.blank?
+      if params[:name].blank?
         @list.items
       else
-        @list.items.search(item_query_params[:name])
+        @list.items.search(params[:name])
       end
     render json: @items
   end
@@ -34,10 +38,12 @@ class ItemsController < ApplicationController
 
   def update
     if @item.present?
-      if item_update!
+      if !can_access_target_list?
+        render json: unauthorized_error, status: :unauthorized
+      elsif item_update
         render json: @item, status: :ok
       else
-        render json: @item.errors, status: :bad_request
+        render json: errors(@item), status: :bad_request
       end
     else
       render status: :no_content
@@ -53,12 +59,14 @@ class ItemsController < ApplicationController
     end
   end
 
-  def toggle
-    if @item.present?
-      if @item.change_state(toggle_item_params[:state])
-        render json: @item, status: :ok
+  def mass_action
+    if @items.present?
+      if !can_access_target_list?
+        render json: unauthorized_error, status: :unauthorized
+      elsif items_update
+        render json: @items, status: :ok
       else
-        render json: @item.errors, status: :bad_request
+        render json: custom_error(map_errors), status: :bad_request
       end
     else
       render status: :no_content
@@ -67,37 +75,50 @@ class ItemsController < ApplicationController
 
   private
 
-  def list_params
-    params.require(:list_id)
-  end
-
-  def item_params
-    params.require(:id)
-  end
-
-  def item_query_params
-    params.permit(:name)
-  end
-
   def create_item_params
     params.permit(:name, :quantity, :price, :unit)
   end
 
-  def toggle_state_params
-    params.permit(:state)
+  def can_access_target_list?
+    return true if @target_list.blank?
+    @target_list.user.eql?(current_user)
   end
 
-  def item_update!
-    @item.state = toggle_state_params[:state] if toggle_state_params.present?
-    @item.update(create_item_params)
+  def item_update(item = nil)
+    item ||= @item
+    item.list = @target_list if @target_list.present?
+    item.state = params[:state] if params[:state].present?
+    item.update(create_item_params)
+  end
+
+  def items_update
+    Item.transaction do
+      @items.each do |i|
+        update_successful = item_update i
+        raise ActiveRecord::Rollback unless update_successful
+      end
+    end
   end
 
   def find_list
-    @list = List.where(user: current_user).find_by(id: list_params)
+    @list = List.where(user: current_user).find_by(id: params[:list_id])
     render status: :no_content if @list.nil?
   end
 
   def find_item
-    @item = Item.where(list: @list).find_by(id: item_params)
+    @item = Item.where(list: @list).find_by(id: params[:id])
+  end
+
+  def find_items
+    @items = Item.where(list: @list, id: params[:ids])
+  end
+
+  def find_target_list
+    return if params[:target_list].blank?
+    @target_list = List.find(params[:target_list])
+  end
+
+  def map_errors
+    @items.map { |i| i.errors.full_messages }.flatten.compact
   end
 end
