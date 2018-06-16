@@ -11,5 +11,7 @@ class CreateGroupMemberships < ActiveRecord::Migration[5.1]
       t.belongs_to :user
       t.timestamps
     end
+
+    add_index :group_memberships, %i[group_id user_id], unique: true
   end
 end

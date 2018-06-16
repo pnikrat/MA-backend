@@ -30,5 +30,16 @@ FactoryBot.define do
         create_list :list, options.lists_count, user: user
       end
     end
+
+    trait :with_groups do
+      transient do
+        groups_count 3
+      end
+
+      after :create do |user, transients|
+        create_list(:group, transients.groups_count, creator: user, users: [user])
+        user.groups.reload
+      end
+    end
   end
 end
