@@ -6,4 +6,13 @@ class GroupsController < ApplicationController
     @groups = current_user.groups
     render json: @groups
   end
+
+  def show
+    @group = Group.where(id: params[:id]).with_member(current_user)
+    if @group.present?
+      render json: @group, include: :users
+    else
+      render status: :no_content
+    end
+  end
 end

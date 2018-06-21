@@ -7,4 +7,6 @@ class Group < ApplicationRecord
   has_many :group_memberships, dependent: :destroy
   has_many :users, through: :group_memberships
   belongs_to :creator, class_name: 'User'
+
+  scope :with_member, ->(user) { joins(:users).where(users: { id: user.id }) }
 end

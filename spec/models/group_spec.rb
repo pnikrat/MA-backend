@@ -5,6 +5,7 @@ RSpec.describe Group do
   let(:group_no_name) { build(:group, :without_name) }
   let(:group_no_creator) { build(:group, :without_creator) }
   let(:group_with_users) { create(:group, :with_users) }
+  let(:user_with_groups) { create(:user, :with_groups) }
   let(:user) { create(:user) }
   let(:user_attr) { attributes_for(:user) }
 
@@ -64,6 +65,25 @@ RSpec.describe Group do
       }.to raise_error ActiveRecord::RecordInvalid
       expect(GroupMembership.count).to eq 3
       expect(group_with_users.reload.users.length).to eq 3
+    end
+  end
+
+  context 'scopes' do
+    describe 'with_member' do
+      it 'returns all groups user is member of' do
+        user_with_groups
+        expect(described_class.with_member(user_with_groups)).to eq user_with_groups.groups
+      end
+
+      it 'returns single group user is member of' do
+        member = group_with_users.users.first
+        expect(described_class.with_member(member)).to eq [group_with_users]
+      end
+
+      it 'returns no groups if user is not a member of any' do
+        user
+        expect(described_class.with_member(user)).to be_empty
+      end
     end
   end
 end
