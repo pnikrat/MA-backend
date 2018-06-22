@@ -5,6 +5,9 @@ RSpec.describe 'Groups api interactions' do
   let(:user_with_groups) { create(:user, :with_groups) }
   let(:group_with_users) { create(:group, :with_users) }
 
+  let(:new_group) { attributes_for(:group, :without_creator).to_json }
+  let(:invalid_group) { attributes_for(:group, :without_name).to_json }
+
   context 'Groups#index GET' do
     it 'gets all user groups if user (as creator) is signed in and responds 200 OK' do
       get groups_path, headers: headers(user_with_groups)
@@ -52,6 +55,36 @@ RSpec.describe 'Groups api interactions' do
 
     it 'responds unauthorized when no tokens passed' do
       get group_path(group_with_users), headers: headers
+      expect(response).to have_http_status :unauthorized
+    end
+  end
+
+  context 'Groups#create POST' do
+    it 'can create new group by specifying just its name - responds 200 OK' do
+      expect {
+        post groups_path, params: new_group, headers: headers(user)
+      }.to change { user.groups.count }.by 1
+      expect(response).to have_http_status :created
+      expect(json[:creator_id]).to eq user.id
+      expect(Group.last.users).to include user
+      expect(response.headers.to_h).
+        to include('Location' => group_url(json[:id]))
+    end
+
+    it 'cannot create new group without specifying its name - responds 400 BR' do
+      expect {
+        post groups_path, params: invalid_group, headers: headers(user)
+      }.not_to change(Group, :count)
+      expect(response).to have_http_status :bad_request
+      expect(json[:errors]).to include "Name can't be blank"
+      expect(json[:status]).to eq 'failed'
+      expect(user.groups.count).to eq 0
+    end
+
+    it 'responds unauthorized when no tokens passed' do
+      expect {
+        post groups_path, params: new_group, headers: headers
+      }.not_to change(Group, :count)
       expect(response).to have_http_status :unauthorized
     end
   end
