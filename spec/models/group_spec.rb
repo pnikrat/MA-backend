@@ -22,6 +22,11 @@ RSpec.describe Group do
       expect(group_no_creator).not_to be_valid
     end
 
+    it 'group with too long name is invalid' do
+      group.name = 'w' * 61
+      expect(group).not_to be_valid
+    end
+
     it 'group with the same name and creator is invalid' do
       group.save
       creator = group.creator

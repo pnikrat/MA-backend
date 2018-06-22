@@ -7,13 +7,14 @@ RSpec.describe 'Groups api interactions' do
 
   let(:new_group) { attributes_for(:group, :without_creator).to_json }
   let(:invalid_group) { attributes_for(:group, :without_name).to_json }
+  let(:valid_update) { { name: 'after update hello' }.to_json }
+  let(:invalid_update) { { name: '' }.to_json }
 
   context 'Groups#index GET' do
     it 'gets all user groups if user (as creator) is signed in and responds 200 OK' do
       get groups_path, headers: headers(user_with_groups)
       expect(response).to have_http_status :ok
       expect(json.length).to eq 3
-      expect(json[0]).to include name: 'group_1'
       expect(json[0][:creator_id]).to eq user_with_groups.id
     end
 
@@ -44,8 +45,8 @@ RSpec.describe 'Groups api interactions' do
       member = group_with_users.users.last
       get group_path(group_with_users), headers: headers(member)
       expect(response).to have_http_status :ok
-      expect(json.pluck(:id)).to eq [group_with_users.id]
-      expect(json[0][:users].pluck(:id)).to eq group_with_users.users.pluck(:id)
+      expect(json[:id]).to eq group_with_users.id
+      expect(json[:users].pluck(:id)).to eq group_with_users.users.pluck(:id)
     end
 
     it 'does not get the group if user is not its member and responds 204 No content' do
@@ -85,6 +86,41 @@ RSpec.describe 'Groups api interactions' do
       expect {
         post groups_path, params: new_group, headers: headers
       }.not_to change(Group, :count)
+      expect(response).to have_http_status :unauthorized
+    end
+  end
+
+  context 'Groups#update PUT' do
+    let(:updated_group) { user_with_groups.groups.first }
+
+    it 'can update group if user is its creator - responds 200 OK' do
+      updated_group
+      expect {
+        put group_path(updated_group), params: valid_update, headers: headers(user_with_groups)
+      }.not_to change(Group, :count)
+      expect(response).to have_http_status :ok
+      expect(updated_group.reload.name).to eq json(valid_update)[:name]
+    end
+
+    it 'cannot update group if user is its creator but params are invalid - responds 400 BR' do
+      put group_path(updated_group), params: invalid_update, headers: headers(user_with_groups)
+      expect(response).to have_http_status :bad_request
+      expect(json[:errors]).to include "Name can't be blank"
+      expect(json[:status]).to eq 'failed'
+      expect(updated_group.reload.name).not_to be_empty
+    end
+
+    it 'cannot update group if user is not its creator - responds 204 no content' do
+      expect {
+        put group_path(updated_group), params: valid_update, headers: headers(user)
+      }.not_to(change { updated_group.reload.name })
+      expect(response).to have_http_status :no_content
+    end
+
+    it 'responds unauthorized when no tokens passed' do
+      expect {
+        put group_path(updated_group), params: valid_update, headers: headers
+      }.not_to(change { updated_group.reload.name })
       expect(response).to have_http_status :unauthorized
     end
   end
