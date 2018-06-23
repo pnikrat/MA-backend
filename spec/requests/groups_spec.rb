@@ -124,4 +124,43 @@ RSpec.describe 'Groups api interactions' do
       expect(response).to have_http_status :unauthorized
     end
   end
+
+  context 'Groups#destroy DELETE' do
+    let(:creator) { group_with_users.creator }
+
+    before(:each) { group_with_users }
+
+    it 'can destroy group if user is its creator - responds 200 OK and removes memberships only' do
+      group_with_users.users << creator
+      group_with_users.users.each do |u|
+        u.lists.create(name: 'only mine')
+      end
+      expect(GroupMembership.count).to eq 4
+      expect(User.count).to eq 4
+      expect(List.count).to eq 4
+      expect {
+        delete group_path(group_with_users), headers: headers(creator)
+      }.to change(Group, :count).by(-1)
+      expect(response).to have_http_status :ok
+      expect(GroupMembership.count).to eq 0
+      expect(User.count).to eq 4
+      expect(List.count).to eq 4
+    end
+
+    it 'cannot destroy group if user is not its creator - responds 204 No content' do
+      expect {
+        delete group_path(group_with_users), headers: headers(group_with_users.users.first)
+      }.not_to change(Group, :count)
+      expect(response).to have_http_status :no_content
+      expect(GroupMembership.count).to eq 3
+    end
+
+    it 'responds unauthorized when no tokens passed' do
+      expect {
+        delete group_path(group_with_users), headers: headers
+      }.not_to change(Group, :count)
+      expect(response).to have_http_status :unauthorized
+      expect(GroupMembership.count).to eq 3
+    end
+  end
 end
