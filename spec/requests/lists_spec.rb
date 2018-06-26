@@ -7,9 +7,9 @@ RSpec.describe 'Lists api interactions' do
     other_user
   end
 
-  let(:user) { create(:user_with_lists) }
+  let(:user) { create(:user, :with_lists) }
   let(:no_list_user) { create(:user) }
-  let(:other_user) { create(:user_with_lists) }
+  let(:other_user) { create(:user, :with_lists) }
 
   let(:new_list) { attributes_for(:list, :without_user).to_json }
   let(:new_invalid_list) { attributes_for(:list, :without_name).to_json }

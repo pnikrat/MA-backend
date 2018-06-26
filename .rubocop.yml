@@ -63,6 +63,8 @@ RSpec/VerifiedDoubles:
 
 Style/FormatStringToken:
   EnforcedStyle: template
+Style/Lambda:
+  EnforcedStyle: literal
 Style/BlockDelimiters:
   Enabled: false
   Include:

@@ -21,7 +21,7 @@ FactoryBot.define do
       password_confirmation ''
     end
 
-    factory :user_with_lists do
+    trait :with_lists do
       transient do
         lists_count 3
       end
