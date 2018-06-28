@@ -26,6 +26,8 @@ RSpec.describe List do
     let(:members_with_lists) do
       [create(:user, :with_lists), create(:user, :with_lists), create(:user, :with_lists)]
     end
+    let(:group_with_users) { create(:group, :with_users, user_traits: [:with_lists]) }
+    let(:sub_user) { create(:user, :with_lists) }
 
     describe 'within_groups' do
       it 'gets all lists of user if he does not belong to any group' do
@@ -56,6 +58,45 @@ RSpec.describe List do
         expect(described_class.user_lists(user).count).to eq 12
         expected_lists = members_with_lists.flat_map(&:lists) + user.lists
         expect(described_class.user_lists(user)).to match_array expected_lists
+      end
+
+      it 'gets lists of user and members without duplicates from several memberships' do
+        user.groups.each_with_index do |g, i|
+          g.users << members_with_lists[i]
+          g.users << members_with_lists[i + 1] if i + 1 < 3
+        end
+        expected_lists = members_with_lists.flat_map(&:lists) + user.lists
+        expect(described_class.user_lists(user)).to match_array expected_lists
+      end
+
+      it 'gets lists of members from group user is only a member of' do
+        group_with_users.users << user
+        expect(User.count).to eq 5 # creator is not member in group_with_users factory
+        expect(described_class.count).to eq 12
+        expected_lists = group_with_users.users.flat_map(&:lists)
+        expect(described_class.user_lists(user)).to match_array expected_lists
+      end
+
+      it 'gets lists of members from group user is a member of and from users groups combined' do
+        group_with_users.users << user
+        user.groups.each_with_index do |g, i|
+          g.users << members_with_lists[i]
+        end
+        expect(described_class.count).to eq 21
+        expected_lists = group_with_users.users.flat_map(&:lists) +
+                         members_with_lists.flat_map(&:lists)
+        expect(described_class.user_lists(user)).to match_array expected_lists
+      end
+
+      it 'does not get lists of second level of groups' do
+        user_with_sublevel = group_with_users.users.first
+        sub_group = user_with_sublevel.groups.create(name: 'random', creator: user_with_sublevel)
+        sub_group.users << sub_user
+        group_with_users.users << user
+        expect(described_class.count).to eq 15
+        expected_lists = group_with_users.users.flat_map(&:lists)
+        expect(described_class.user_lists(user)).to match_array expected_lists
+        expect(described_class.user_lists(user)).not_to include(*sub_user.lists)
       end
     end
   end

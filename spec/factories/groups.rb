@@ -14,10 +14,11 @@ FactoryBot.define do
     trait :with_users do
       transient do
         user_count 3
+        user_traits []
       end
 
       after :create do |group, transients|
-        create_list(:user, transients.user_count, groups: [group])
+        create_list(:user, transients.user_count, *transients.user_traits, groups: [group])
         group.users.reload
       end
     end
