@@ -34,12 +34,26 @@ RSpec.describe 'Items api interactions' do
   let(:third_item) { list.items.third }
   let(:item_of_other_user) { other_list.items.first }
 
+  let(:group_with_users) { create(:group, :with_users, user_traits: [:with_lists]) }
+  let(:group_user) { group_with_users.users.first }
+  let(:group_user2) { group_with_users.users.last }
+  let(:group_list) { group_user2.lists.first }
+  let(:group_target_list) { group_with_users.users.second.lists.second }
+
   context 'Items#index GET' do
     it 'gets all items on list if user is signed in and responds 200 OK' do
       get list_items_path(list.id), headers: headers(user)
       expect(response).to have_http_status(:ok)
       expect(json.length).to eq 10
       expect(json[0]).to include(list_id: list.id)
+    end
+
+    it 'gets all items from user group member list and responds 200 OK' do
+      create_list(:item, 4, list: group_list)
+      get list_items_path(group_list.id), headers: headers(group_user)
+      expect(response).to have_http_status :ok
+      expect(json.length).to eq 4
+      expect(json[0]).to include(list_id: group_list.id)
     end
 
     it 'returns 204 No content if there is no list with given id' do
@@ -92,6 +106,14 @@ RSpec.describe 'Items api interactions' do
       expect(json[:list_id]).to eq list.id
     end
 
+    it 'gets specific item from user group member list and responds 200 OK' do
+      create_list(:item, 4, list: group_list)
+      get list_item_path(group_list.id, group_list.items.first), headers: headers(group_user)
+      expect(response).to have_http_status :ok
+      expect(json[:id]).to eq group_list.items.first.id
+      expect(json[:list_id]).to eq group_list.id
+    end
+
     it 'doesnt get item in other user list and responds with 204 No Content' do
       get list_item_path(other_list.id, item_of_other_user.id),
           headers: headers(user)
@@ -107,9 +129,7 @@ RSpec.describe 'Items api interactions' do
   context 'Items#create POST' do
     it 'creates an item, returns its id and responds with 201 created' do
       expect {
-        post list_items_path(list.id),
-             params: new_item,
-             headers: headers(user)
+        post list_items_path(list.id), params: new_item, headers: headers(user)
       }.to change(Item, :count).by(1)
       expect(response).to have_http_status(:created)
       expect(json[:list_id]).to eq list.id
@@ -118,22 +138,31 @@ RSpec.describe 'Items api interactions' do
         to include('Location' => list_item_url(list.id, created_id))
     end
 
+    it 'creates item in user group member list and responds 201 created' do
+      expect {
+        post list_items_path(group_list.id), params: new_item, headers: headers(group_user)
+      }.to change(Item, :count).by 1
+      expect(response).to have_http_status :created
+      expect(json[:list_id]).to eq group_list.id
+      expect(group_list.items.count).to eq 1
+      created_id = json[:id]
+      expect(response.headers.to_h).
+        to include('Location' => list_item_url(group_list.id, created_id))
+    end
+
     it 'does not create item if params are invalid, responds with 400' do
       expect {
-        post list_items_path(list.id),
-             params: new_invalid_item,
-             headers: headers(user)
+        post list_items_path(list.id), params: new_invalid_item, headers: headers(user)
       }.not_to(change(Item, :count))
       expect(response).to have_http_status(:bad_request)
-      expect(json).to include name: ["can't be blank"]
+      expect(json[:status]).to eq 'failed'
+      expect(json[:errors]).to include "Name can't be blank"
       expect(json).not_to include :id
     end
 
     it 'responds with unauthorized if user is not signed in' do
       expect {
-        post list_items_path(list.id),
-             params: new_item,
-             headers: headers
+        post list_items_path(list.id), params: new_item, headers: headers
       }.not_to(change(Item, :count))
       expect(response).to have_http_status(:unauthorized)
     end
@@ -142,9 +171,7 @@ RSpec.describe 'Items api interactions' do
   context 'Items#update PUT' do
     it 'updates an item and responds with 200 OK' do
       expect {
-        put list_item_path(list.id, second_item),
-            params: update_item,
-            headers: headers(user)
+        put list_item_path(list.id, second_item), params: update_item, headers: headers(user)
       }.not_to(change(Item, :count))
       expect(response).to have_http_status(:ok)
       expect(second_item.reload.name).to eq 'updated'
@@ -152,16 +179,22 @@ RSpec.describe 'Items api interactions' do
       expect(second_item).to have_state(:to_buy)
     end
 
+    it 'updates an item from user group member list and responds with 200 OK' do
+      create_list(:item, 4, list: group_list)
+      put list_item_path(group_list.id, group_list.items.first),
+          params: update_item, headers: headers(group_user)
+      expect(response).to have_http_status :ok
+      expect(group_list.items.first.reload.name).to eq 'updated'
+    end
+
     it 'does not update list if params are invalid, responds with 400' do
-      put list_item_path(list.id, second_item),
-          params: new_invalid_item,
-          headers: headers(user)
+      put list_item_path(list.id, second_item), params: new_invalid_item, headers: headers(user)
       expect(response).to have_http_status(:bad_request)
       expect(json[:errors]).to include "Name can't be blank"
       expect(second_item.reload.name).not_to be_nil
     end
 
-    it 'updates item list if list belongs to current user and target_list param present. 200 OK' do
+    it 'updates item list_id if list belongs to current user and target_list param present. 200 OK' do
       expect {
         put list_item_path(list.id, second_item),
             params: update_item_list.merge(target_list: list2.id).to_json,
@@ -173,7 +206,21 @@ RSpec.describe 'Items api interactions' do
       expect(list.items).not_to include second_item
     end
 
-    it 'does not update item list if no target list param is present. 200 OK' do
+    it 'updates item list_id if list belong to user group member, responds 200 OK' do
+      create_list(:item, 4, list: group_list)
+      moved_item = group_list.items.first
+      expect {
+        put list_item_path(group_list.id, moved_item),
+            params: update_item_list.merge(target_list: group_target_list.id).to_json,
+            headers: headers(group_user)
+      }.to change { group_target_list.items.count }.by 1
+      expect(response).to have_http_status :ok
+      expect(moved_item.reload.list_id).to eq group_target_list.id
+      expect(moved_item.name).to eq 'in_new_list'
+      expect(group_list.items.reload).not_to include moved_item
+    end
+
+    it 'does not update item list_id if no target list param is present. 200 OK' do
       expect {
         put list_item_path(list.id, second_item),
             params: update_item_list.to_json,
@@ -185,7 +232,7 @@ RSpec.describe 'Items api interactions' do
       expect(list.items).to include second_item
     end
 
-    it 'doesnt update item list if there is already item with same name in target list. 400' do
+    it 'doesnt update item list_id if there is already item with same name in target list. 400' do
       list2.items.create(name: second_item.name)
       expect {
         put list_item_path(list.id, second_item),
@@ -197,7 +244,7 @@ RSpec.describe 'Items api interactions' do
       expect(second_item.reload.list_id).to eq list.id
     end
 
-    it 'does not update item list if target list belongs to another user. 401 Unauthorized' do
+    it 'does not update item list_id if target list belongs to another user. 401 Unauthorized' do
       expect {
         put list_item_path(list.id, second_item),
             params: update_item_list.merge(target_list: other_list.id).to_json,
@@ -252,6 +299,17 @@ RSpec.describe 'Items api interactions' do
       expect(json.length).to eq 3
       expect(first_item.reload.aasm_state).to eq 'bought'
       expect(third_item.reload.aasm_state).to eq 'bought'
+    end
+
+    it 'mass updates items from user group member list and responds 200 OK' do
+      create_list(:item, 4, list: group_list)
+      put list_items_path(group_list.id),
+          params: { ids: group_list.items.pluck(:id), state: 'missing' }.to_json,
+          headers: headers(group_user)
+      expect(response).to have_http_status :ok
+      expect(json.length).to eq 4
+      expect(group_list.items.first.reload.aasm_state).to eq 'missing'
+      expect(group_list.items.last.reload.aasm_state).to eq 'missing'
     end
 
     it 'updates list_id of several items and responds 200 OK' do
@@ -324,6 +382,14 @@ RSpec.describe 'Items api interactions' do
         delete list_item_path(list.id, third_item), headers: headers(user)
       }.to change { Item.where(list: list).count }.by(-1)
       expect(response).to have_http_status(:ok)
+    end
+
+    it 'destroys an item from user group member list and responds 200 OK' do
+      create_list(:item, 4, list: group_list)
+      expect {
+        delete list_item_path(group_list.id, group_list.items.first), headers: headers(group_user)
+      }.to change { Item.where(list: group_list).count }.by(-1)
+      expect(response).to have_http_status :ok
     end
 
     it 'returns 204 No Content if item does not exist' do

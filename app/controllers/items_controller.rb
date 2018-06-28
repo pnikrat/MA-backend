@@ -32,7 +32,7 @@ class ItemsController < ApplicationController
       render json: @item, status: :created,
              location: list_item_url(@list, @item)
     else
-      render json: @item.errors, status: :bad_request
+      render json: errors(@item), status: :bad_request
     end
   end
 
@@ -81,7 +81,7 @@ class ItemsController < ApplicationController
 
   def can_access_target_list?
     return true if @target_list.blank?
-    @target_list.user.eql?(current_user)
+    List.user_lists(current_user).include? @target_list
   end
 
   def item_update(item = nil)
@@ -101,7 +101,7 @@ class ItemsController < ApplicationController
   end
 
   def find_list
-    @list = List.where(user: current_user).find_by(id: params[:list_id])
+    @list = List.user_lists(current_user).find_by(id: params[:list_id])
     render status: :no_content if @list.nil?
   end
 
