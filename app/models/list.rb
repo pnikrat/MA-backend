@@ -7,7 +7,7 @@ class List < ApplicationRecord
 
   scope :within_groups, ->(user) {
     joins(user: :group_memberships).
-      where(group_memberships: { group_id: Group.with_member(user) }).uniq
+      where(group_memberships: { group_id: Group.with_member(user) }).distinct
   }
 
   def self.user_lists(user)
