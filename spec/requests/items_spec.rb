@@ -166,6 +166,12 @@ RSpec.describe 'Items api interactions' do
       }.not_to(change(Item, :count))
       expect(response).to have_http_status(:unauthorized)
     end
+
+    it 'broadcasts on list channel after creating an item' do
+      expect {
+        post list_items_path(list.id), params: new_item, headers: headers(user)
+      }.to broadcast_to(list).from_channel(ListChannel).once
+    end
   end
 
   context 'Items#update PUT' do

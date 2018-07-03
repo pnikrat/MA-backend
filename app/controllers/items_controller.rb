@@ -29,6 +29,7 @@ class ItemsController < ApplicationController
   def create
     @item = @list.items.create(create_item_params)
     if @item.persisted?
+      ws_event(:create_item, @item)
       render json: @item, status: :created,
              location: list_item_url(@list, @item)
     else
@@ -120,5 +121,9 @@ class ItemsController < ApplicationController
 
   def map_errors
     @items.map { |i| i.errors.full_messages }.flatten.compact
+  end
+
+  def ws_event(event_type, data)
+    ListChannel.broadcast_to(@list, { event_type: event_type, data: data }.to_json)
   end
 end
