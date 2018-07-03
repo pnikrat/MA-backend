@@ -22,6 +22,7 @@ gem 'rails', '~> 5.1.4'
 # gem 'capistrano-rails', group: :development
 
 group :development, :test do
+  gem 'action-cable-testing'
   gem 'dotenv-rails'
   gem 'factory_bot_rails'
   gem 'pry-byebug'

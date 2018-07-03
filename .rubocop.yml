@@ -44,6 +44,8 @@ RSpec/ExampleLength:
 RSpec/ExpectInHook:
   Exclude:
     - 'spec/features/**/*'
+RSpec/FilePath:
+  Enabled: false
 RSpec/HookArgument:
   EnforcedStyle: each
 RSpec/LetSetup:
