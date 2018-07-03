@@ -6,5 +6,7 @@ class User < ApplicationRecord
 
   validates :first_name, presence: true
 
-  has_many :lists
+  has_many :lists, dependent: :destroy
+  has_many :group_memberships, dependent: :destroy
+  has_many :groups, through: :group_memberships
 end

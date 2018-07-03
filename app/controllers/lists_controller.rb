@@ -1,10 +1,13 @@
 # Api controller for shopping lists
 class ListsController < ApplicationController
   before_action :authenticate_user!
-  before_action :find_list, only: %i[show update destroy]
+  before_action :find_list, only: %i[show update]
+  before_action :find_direct_list, only: %i[destroy]
+
+  include JSONErrors
 
   def index
-    @lists = List.where(user: current_user)
+    @lists = available_lists
     render json: @lists
   end
 
@@ -17,11 +20,11 @@ class ListsController < ApplicationController
   end
 
   def create
-    @list = current_user.lists.create(name: create_list_params[:name])
+    @list = current_user.lists.create(create_list_params)
     if @list.persisted?
       render json: @list, status: :created, location: @list
     else
-      render json: @list.errors, status: :bad_request
+      render json: errors(@list), status: :bad_request
     end
   end
 
@@ -30,7 +33,7 @@ class ListsController < ApplicationController
       if @list.update(create_list_params)
         render json: @list, status: :ok
       else
-        render json: @list.errors, status: :bad_request
+        render json: errors(@list), status: :bad_request
       end
     else
       render status: :no_content
@@ -48,15 +51,19 @@ class ListsController < ApplicationController
 
   private
 
-  def list_params
-    params.require(:id)
-  end
-
   def create_list_params
     params.permit(:name)
   end
 
+  def available_lists
+    List.user_lists(current_user)
+  end
+
   def find_list
-    @list = List.where(user: current_user).find_by(id: list_params)
+    @list = available_lists.find_by(id: params[:id])
+  end
+
+  def find_direct_list
+    @list = List.where(user: current_user).find_by(id: params[:id])
   end
 end

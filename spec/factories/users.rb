@@ -21,13 +21,24 @@ FactoryBot.define do
       password_confirmation ''
     end
 
-    factory :user_with_lists do
+    trait :with_lists do
       transient do
         lists_count 3
       end
 
       after :create do |user, options|
         create_list :list, options.lists_count, user: user
+      end
+    end
+
+    trait :with_groups do
+      transient do
+        groups_count 3
+      end
+
+      after :create do |user, transients|
+        create_list(:group, transients.groups_count, creator: user, users: [user])
+        user.groups.reload
       end
     end
   end

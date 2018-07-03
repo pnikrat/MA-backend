@@ -1,7 +1,7 @@
 module Requests
   module JsonHelpers
-    def json
-      JSON.parse(response.body, symbolize_names: true)
+    def json(to_parse = response.body)
+      JSON.parse(to_parse, symbolize_names: true)
     end
   end
 end
