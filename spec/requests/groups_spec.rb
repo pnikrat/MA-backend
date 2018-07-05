@@ -46,7 +46,7 @@ RSpec.describe 'Groups api interactions' do
       get group_path(group_with_users), headers: headers(member)
       expect(response).to have_http_status :ok
       expect(json[:id]).to eq group_with_users.id
-      expect(json[:users].pluck(:id)).to eq group_with_users.users.pluck(:id)
+      expect(json[:users].pluck(:id)).to match_array group_with_users.users.pluck(:id)
     end
 
     it 'does not get the group if user is not its member and responds 204 No content' do

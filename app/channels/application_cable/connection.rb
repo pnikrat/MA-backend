@@ -10,9 +10,11 @@ module ApplicationCable
     protected
 
     def find_verified_user
-      uid = request.headers['Uid']
-      token = request.headers['Access-Token']
-      client_id = request.headers['Client']
+      params = request.query_parameters
+
+      uid = params['uid']
+      token = params['access-token']
+      client_id = params['client']
 
       user = User.find_by(uid: uid)
 
