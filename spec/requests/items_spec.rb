@@ -292,6 +292,12 @@ RSpec.describe 'Items api interactions' do
       expect(second_item.reload).to have_state(:to_buy)
       expect(second_item.name).not_to eq 'still_water'
     end
+
+    it 'broadcasts on list channel after updating an item' do
+      expect {
+        put list_item_path(list.id, second_item), params: update_item, headers: headers(user)
+      }.to broadcast_to(list).from_channel(ListChannel).once
+    end
   end
 
   context 'Items#mass_action PUT' do
@@ -380,6 +386,14 @@ RSpec.describe 'Items api interactions' do
           headers: headers(user)
       expect(response).to have_http_status :no_content
     end
+
+    it 'sends several broadcasts (as many as updated items) during mass update' do
+      expect {
+        put list_items_path(list.id),
+            params: { ids: mass_ids, unit: 'pieces', state: 'bought' }.to_json,
+            headers: headers(user)
+      }.to broadcast_to(list).from_channel(ListChannel).exactly(3).times
+    end
   end
 
   context 'Items#destroy DELETE' do
@@ -403,6 +417,12 @@ RSpec.describe 'Items api interactions' do
         delete list_item_path(list.id, fake_id), headers: headers(user)
       }.not_to(change(Item, :count))
       expect(response).to have_http_status(:no_content)
+    end
+
+    it 'broadcasts on list channel on destroying an item' do
+      expect {
+        delete list_item_path(list.id, third_item), headers: headers(user)
+      }.to broadcast_to(list).from_channel(ListChannel).once
     end
   end
 end

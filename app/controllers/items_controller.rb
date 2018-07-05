@@ -1,7 +1,7 @@
 # Api controller for shopping items
 class ItemsController < ApplicationController
   before_action :authenticate_user!
-  before_action :find_list
+  before_action :find_list_and_prepare_dispatcher
   before_action :find_item, only: %i[show update destroy]
   before_action :find_items, only: %i[mass_action]
   before_action :find_target_list, only: %i[mass_action update]
@@ -29,7 +29,7 @@ class ItemsController < ApplicationController
   def create
     @item = @list.items.create(create_item_params)
     if @item.persisted?
-      ws_event(:create_item, @item)
+      @dispatcher.ws_event(:add_item, @item)
       render json: @item, status: :created,
              location: list_item_url(@list, @item)
     else
@@ -42,6 +42,7 @@ class ItemsController < ApplicationController
       if !can_access_target_list?
         render json: unauthorized_error, status: :unauthorized
       elsif item_update
+        @dispatcher.ws_event(:edit_item, @item)
         render json: @item, status: :ok
       else
         render json: errors(@item), status: :bad_request
@@ -54,6 +55,7 @@ class ItemsController < ApplicationController
   def destroy
     if @item.present?
       @item.destroy
+      @dispatcher.ws_event(:remove_item, @item.id)
       render status: :ok
     else
       render status: :no_content
@@ -65,6 +67,7 @@ class ItemsController < ApplicationController
       if !can_access_target_list?
         render json: unauthorized_error, status: :unauthorized
       elsif items_update
+        @items.each { |i| @dispatcher.ws_event(:edit_item, i) }
         render json: @items, status: :ok
       else
         render json: custom_error(map_errors), status: :bad_request
@@ -101,9 +104,10 @@ class ItemsController < ApplicationController
     end
   end
 
-  def find_list
+  def find_list_and_prepare_dispatcher
     @list = List.user_lists(current_user).find_by(id: params[:list_id])
     render status: :no_content if @list.nil?
+    @dispatcher = ListDispatcher.new(@list)
   end
 
   def find_item
@@ -121,9 +125,5 @@ class ItemsController < ApplicationController
 
   def map_errors
     @items.map { |i| i.errors.full_messages }.flatten.compact
-  end
-
-  def ws_event(event_type, data)
-    ListChannel.broadcast_to(@list, { event_type: event_type, data: data }.to_json)
   end
 end
