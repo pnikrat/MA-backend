@@ -11,6 +11,7 @@ Rails.application.routes.draw do
   end
 
   resources :groups
+  resources :invites, controller: 'invites', only: %i[create]
 
   mount_devise_token_auth_for 'User', at: 'auth'
 end
