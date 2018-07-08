@@ -11,4 +11,8 @@ class Group < ApplicationRecord
   belongs_to :creator, class_name: 'User'
 
   scope :with_member, ->(user) { joins(:users).where(users: { id: user.id }) }
+
+  def can_invite?(user)
+    user.eql? creator
+  end
 end
