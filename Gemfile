@@ -8,6 +8,7 @@ end
 gem 'aasm' # state machine for models
 gem 'bootsnap', require: false
 gem 'devise_token_auth'
+gem 'invitation'
 gem 'pg', '~> 0.21'
 gem 'pg_search'
 gem 'puma', '~> 3.7'

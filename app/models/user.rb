@@ -3,6 +3,7 @@ class User < ApplicationRecord
   devise :database_authenticatable, :registerable,
          :rememberable, :trackable, :validatable
   include DeviseTokenAuth::Concerns::User
+  include Invitation::User
 
   validates :first_name, presence: true
 

@@ -1,6 +1,8 @@
 # Group model representing a collection of users
 # who want to share their shopping lists
 class Group < ApplicationRecord
+  invitable named_by: :name
+
   validates :name, presence: true, length: { maximum: 60 }
   validates :name, uniqueness: :creator_id
 
