@@ -3,6 +3,8 @@ GEM
   specs:
     aasm (4.12.3)
       concurrent-ruby (~> 1.0)
+    action-cable-testing (0.3.1)
+      actioncable (~> 5.0)
     actioncable (5.1.4)
       actionpack (= 5.1.4)
       nio4r (~> 2.0)
@@ -184,6 +186,7 @@ PLATFORMS
 
 DEPENDENCIES
   aasm
+  action-cable-testing
   bootsnap
   database_cleaner
   devise_token_auth
