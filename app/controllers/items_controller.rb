@@ -42,7 +42,7 @@ class ItemsController < ApplicationController
       if !can_access_target_list?
         render json: unauthorized_error, status: :unauthorized
       elsif item_update
-        @dispatcher.ws_event(:edit_item, @item)
+        dispatch_update_event
         render json: @item, status: :ok
       else
         render json: errors(@item), status: :bad_request
@@ -67,7 +67,7 @@ class ItemsController < ApplicationController
       if !can_access_target_list?
         render json: unauthorized_error, status: :unauthorized
       elsif items_update
-        @items.each { |i| @dispatcher.ws_event(:edit_item, i) }
+        @items.each { |i| dispatch_update_event(i) }
         render json: @items, status: :ok
       else
         render json: custom_error(map_errors), status: :bad_request
@@ -101,6 +101,16 @@ class ItemsController < ApplicationController
         update_successful = item_update i
         raise ActiveRecord::Rollback unless update_successful
       end
+    end
+  end
+
+  def dispatch_update_event(item = nil)
+    item ||= @item
+    if @target_list.blank?
+      @dispatcher.ws_event(:edit_item, item)
+    else
+      @dispatcher.ws_event(:remove_item, item.id)
+      ListDispatcher.new(@target_list).ws_event(:add_item, item)
     end
   end
 

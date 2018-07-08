@@ -293,10 +293,20 @@ RSpec.describe 'Items api interactions' do
       expect(second_item.name).not_to eq 'still_water'
     end
 
-    it 'broadcasts on list channel after updating an item' do
+    it 'broadcasts edit on list channel after updating an item but not its list id' do
       expect {
         put list_item_path(list.id, second_item), params: update_item, headers: headers(user)
       }.to broadcast_to(list).from_channel(ListChannel).once
+    end
+
+    it 'sends broadcasts to both lists between which item moves after list id update' do
+      expect {
+        expect {
+          put list_item_path(list.id, second_item),
+              params: update_item_list.merge(target_list: list2.id).to_json,
+              headers: headers(user)
+        }.to broadcast_to(list).from_channel(ListChannel).once
+      }.to broadcast_to(list2).from_channel(ListChannel).once
     end
   end
 
@@ -393,6 +403,16 @@ RSpec.describe 'Items api interactions' do
             params: { ids: mass_ids, unit: 'pieces', state: 'bought' }.to_json,
             headers: headers(user)
       }.to broadcast_to(list).from_channel(ListChannel).exactly(3).times
+    end
+
+    it 'sends broadcasts to both items between which items move during mass update' do
+      expect {
+        expect {
+          put list_items_path(list.id),
+              params: { ids: mass_ids, target_list: list2.id }.to_json,
+              headers: headers(user)
+        }.to broadcast_to(list).from_channel(ListChannel).exactly(3).times
+      }.to broadcast_to(list2).from_channel(ListChannel).exactly(3).times
     end
   end
 
