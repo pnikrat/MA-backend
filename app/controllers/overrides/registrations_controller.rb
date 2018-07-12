@@ -1,7 +1,8 @@
-module DeviseTokenAuth
+module Overrides
   # open devise token auth registrations controller to process group invite token
-  class RegistrationsController
+  class RegistrationsController < DeviseTokenAuth::RegistrationsController
     include Invitation::UserRegistration
-    after_action :process_invite_token, only: %i[create]
+    # @resource is an instance of User
+    after_action -> { process_invite_token(@resource) }, only: %i[create]
   end
 end
