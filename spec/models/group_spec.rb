@@ -91,4 +91,18 @@ RSpec.describe Group do
       end
     end
   end
+
+  context 'basic behaviour' do
+    describe 'can_invite?' do
+      it 'responds true for group creators' do
+        group = user_with_groups.groups.first
+        expect(group.can_invite?(user_with_groups)).to be true
+      end
+
+      it 'responds false for any user that is not a creator' do
+        group = user_with_groups.groups.first
+        expect(group.can_invite?(user)).to be false
+      end
+    end
+  end
 end

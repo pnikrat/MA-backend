@@ -1,6 +1,8 @@
 # Group model representing a collection of users
 # who want to share their shopping lists
 class Group < ApplicationRecord
+  invitable named_by: :name
+
   validates :name, presence: true, length: { maximum: 60 }
   validates :name, uniqueness: :creator_id
 
@@ -9,4 +11,8 @@ class Group < ApplicationRecord
   belongs_to :creator, class_name: 'User'
 
   scope :with_member, ->(user) { joins(:users).where(users: { id: user.id }) }
+
+  def can_invite?(user)
+    user.eql? creator
+  end
 end
