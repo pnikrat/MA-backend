@@ -16,7 +16,7 @@ RSpec.describe 'User sessions' do
     it 'user cannot sign in with invalid credentials and responds 401' do
       post user_session_path, params: fake_user_credentials, headers: headers
       expect(response).to have_http_status(:unauthorized)
-      expect(json[:errors]).to include 'Invalid login credentials. Please try again.'
+      expect(json[:errors]).to include I18n.t('devise_token_auth.sessions.bad_credentials')
       expect(response.headers).not_to include 'access-token'
     end
   end

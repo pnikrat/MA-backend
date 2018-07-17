@@ -1,0 +1,25 @@
+pl:
+  activerecord:
+    attributes:
+      invite:
+        email: "Email"
+  invitation:
+    flash:
+      invite_issued:
+        one: "Zaproszenie wysłane"
+        other: "Zaproszenia wysłane"
+      invite_error:
+        one: "Wysłanie zaproszenia do %{email} niemożliwe"
+        other: "Wysłanie zaproszeń do %{email} niemożliwe"
+    invite_mailer:
+      existing_user:
+        subject: "Zostałeś dodany do grupy zakupowej"
+        hello: "Witaj %{email}"
+        someone_invited_you: "%{sender} zaprosił Cię do grupy: %{invitable} w aplikacji Shopping Lists. Twoje konto automatycznie otrzymało do niej dostęp."
+        ignore: "Jeżeli nie potrzebujesz dostępu do tej grupy lub uważasz, że dodano Cię przez pomyłkę, skontaktuj się z %{sender}."
+      new_user:
+        subject: "Otrzymałeś zaproszenie do grupy zakupowej"
+        hello: "Witaj %{email}"
+        someone_invited_you: "%{sender} zaprosił Cię do grupy: %{invitable} w aplikacji Shopping Lists. Zarejestruj się w aplikacji używając poniższego linku, aby otrzymać dostęp do grupy."
+        accept: "Odbierz zaproszenie"
+        ignore: "Jeżeli nie potrzebujesz dostępu do grupy w tej aplikacji, zignoruj ten e-mail."

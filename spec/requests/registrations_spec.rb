@@ -48,7 +48,7 @@ RSpec.describe 'User registrations' do
              params: user_with_duplicate_email, headers: headers
       }.not_to(change(User, :count))
       expect(response).to have_http_status(:unprocessable_entity)
-      expect(json[:errors]).to include email: ['has already been taken']
+      expect(json[:errors]).to include email: [I18n.t('errors.messages.taken')]
     end
 
     it 'creates new user with permissions from invite, responds with 200' do

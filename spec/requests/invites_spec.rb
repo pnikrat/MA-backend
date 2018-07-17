@@ -39,7 +39,7 @@ RSpec.describe 'Group invitation creation' do
       expect(deliveries.first.to).to eq [invite_params[:email]]
       expect(deliveries.first.to_s).to include(
         I18n.t('invitation.invite_mailer.new_user.someone_invited_you',
-               sender: user.email, invitable: group.name)
+               sender: user.email, invitable: group.name, locale: :en)
       )
     end
 
@@ -55,7 +55,7 @@ RSpec.describe 'Group invitation creation' do
       expect(deliveries.first.to).to eq [user2.email]
       expect(deliveries.first.to_s).to include(
         I18n.t('invitation.invite_mailer.existing_user.someone_invited_you',
-               sender: user.email, invitable: group.name)
+               sender: user.email, invitable: group.name, locale: :en)
       )
       expect(Group.with_member(user2)).to include group
     end
@@ -68,7 +68,7 @@ RSpec.describe 'Group invitation creation' do
       }.not_to change(Invite, :count)
       expect(response).to have_http_status :bad_request
       expect(json[:status]).to eq 'failed'
-      expect(json[:errors]).to eq 'User already in group'
+      expect(json[:errors]).to eq I18n.t('group.errors.already_in')
       expect(deliveries.length).to eq 0
     end
   end
