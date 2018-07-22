@@ -65,7 +65,10 @@ class Item < ApplicationRecord
   end
 
   def throw_invalid_state
-    errors.add(:aasm_state, 'invalid state change')
+    errors.add(
+      :aasm_state,
+      I18n.t('item.errors.aasm_state.bad_transition', default: 'invalid state change')
+    )
     throw :abort
   end
 

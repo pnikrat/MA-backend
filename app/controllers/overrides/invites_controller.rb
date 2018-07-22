@@ -21,7 +21,9 @@ module Overrides
 
     def check_if_permissions_already_exist
       return unless user_already_in_group
-      render json: custom_error('User already in group'), status: :bad_request
+      render json: custom_error(
+        I18n.t('group.errors.already_in', default: 'User already in group')
+      ), status: :bad_request
     end
 
     def user_already_in_group
