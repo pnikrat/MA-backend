@@ -53,7 +53,7 @@ RSpec.describe 'Search api interactions' do
             params: { name: 'br' }, headers: headers(user)
         expect(response).to have_http_status :ok
         expect(json.length).to eq 3
-        expect(json.pluck(:name)).to match_array %w[bread brocolli bruchette]
+        expect(json.pluck(:name)).to match_array %w[bread bruchette brocolli]
       end
 
       it 'returns results from user other lists' do
@@ -64,6 +64,23 @@ RSpec.describe 'Search api interactions' do
         expect(response).to have_http_status :ok
         expect(json.length).to eq 2
         expect(json.pluck(:name)).to match_array %w[coconut cobol]
+      end
+
+      it 'results from current list are sorted to be at the top' do
+        get list_items_path(list_queried.id),
+            params: { name: 'br' }, headers: headers(user)
+        expect(response).to have_http_status :ok
+        expect(json.length).to eq 3
+        expect(json.pluck(:name)).to eq %w[bread brocolli bruchette]
+      end
+
+      it 'does not duplicate results. Dupes are removes from other lists than main one' do
+        get list_items_path(list_queried.id),
+            params: { name: 'ap' }, headers: headers(user)
+        expect(response).to have_http_status :ok
+        expect(json.length).to eq 2
+        expect(json.pluck(:name)).to match_array %w[apple aperol]
+        expect(json.pluck(:quantity)).to match_array [nil, nil]
       end
     end
   end
