@@ -14,7 +14,7 @@ class ItemsController < ApplicationController
       if params[:name].blank?
         @list.items
       else
-        @search_items.search(params[:name]).sort { |a, b| a.compare(b, @list) }.uniq(&:name)
+        search_items
       end
     render json: @items
   end
@@ -123,7 +123,13 @@ class ItemsController < ApplicationController
   end
 
   def collect_search_items
-    @search_items = Item.where(list: @lists)
+    @search_items = Item.where(list: @lists).where.not(list: @list)
+  end
+
+  def search_items
+    from_current_list = @list.items.search(params[:name])
+    from_other_lists = @search_items.search(params[:name]).select(:id, :name, :list_id)
+    (from_current_list + from_other_lists).uniq(&:name)
   end
 
   def find_item

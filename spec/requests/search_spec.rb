@@ -74,7 +74,19 @@ RSpec.describe 'Search api interactions' do
         expect(json.pluck(:name)).to eq %w[bread brocolli bruchette]
       end
 
-      it 'does not duplicate results. Dupes are removes from other lists than main one' do
+      it 'results from other lists are stripped of attributes other than name, id and list id' do
+        get list_items_path(list_queried.id),
+            params: { name: 'br' }, headers: headers(user)
+        expect(response).to have_http_status :ok
+        expect(json.length).to eq 3
+        other_list_item = json.select { |i| i[:name] == 'bruchette' }.first
+        expect(other_list_item[:quantity]).to be_nil
+        expect(other_list_item[:price]).to be_nil
+        expect(other_list_item[:unit]).to be_nil
+        expect(other_list_item[:list_id]).to eq group_list.id
+      end
+
+      it 'does not duplicate results. Dupes are removed from other lists than main one' do
         get list_items_path(list_queried.id),
             params: { name: 'ap' }, headers: headers(user)
         expect(response).to have_http_status :ok
