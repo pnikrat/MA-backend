@@ -14,6 +14,7 @@ RSpec.describe 'Search api interactions' do
   let(:non_dupe_item) do
     create(:item, :deleted, name: 'bruchette', price: 2.45, unit: 'piece', list: group_list)
   end
+  let(:dupe_item2) { create(:item, :deleted, name: 'potatoes', price: 3.33, list: group_list) }
 
   context 'Items#index GET with query param' do
     it 'gets queried items from list when passed search query and responds 200 OK' do
@@ -45,6 +46,7 @@ RSpec.describe 'Search api interactions' do
       before :each do
         dupe_item
         non_dupe_item
+        dupe_item2
         group_with_users.users << user
       end
 
@@ -93,6 +95,19 @@ RSpec.describe 'Search api interactions' do
         expect(json.length).to eq 2
         expect(json.pluck(:name)).to match_array %w[apple aperol]
         expect(json.pluck(:quantity)).to match_array [nil, nil]
+      end
+
+      it 'item from other list with same name as active item on current list is not in results' do
+        get list_items_path(list_queried.id),
+            params: { name: 'pot' }, headers: headers(user)
+        expect(response).to have_http_status :ok
+        expect(json.length).to eq 0
+        list_queried.items.find_by(name: 'potatoes').delete_item! # state transition
+        get list_items_path(list_queried.id),
+            params: { name: 'pot' }, headers: headers(user)
+        expect(response).to have_http_status :ok
+        expect(json.length).to eq 1
+        expect(json.pluck(:price)).not_to match_array [3.33]
       end
     end
   end

@@ -128,7 +128,9 @@ class ItemsController < ApplicationController
 
   def search_items
     from_current_list = @list.items.search(params[:name])
-    from_other_lists = @search_items.search(params[:name]).select(:id, :name, :list_id)
+    from_other_lists = @search_items.search(params[:name]).
+                       select(:id, :name, :list_id).
+                       reject { |i| @list.items.pluck(:name).include? i.name }
     (from_current_list + from_other_lists).uniq(&:name)
   end
 
