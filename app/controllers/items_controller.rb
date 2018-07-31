@@ -2,6 +2,7 @@
 class ItemsController < ApplicationController
   before_action :authenticate_user!
   before_action :find_list_and_prepare_dispatcher
+  before_action :collect_search_items, only: %i[index]
   before_action :find_item, only: %i[show update destroy]
   before_action :find_items, only: %i[mass_action]
   before_action :find_target_list, only: %i[mass_action update]
@@ -13,7 +14,7 @@ class ItemsController < ApplicationController
       if params[:name].blank?
         @list.items
       else
-        @list.items.search(params[:name])
+        search_items
       end
     render json: @items
   end
@@ -115,9 +116,22 @@ class ItemsController < ApplicationController
   end
 
   def find_list_and_prepare_dispatcher
-    @list = List.user_lists(current_user).find_by(id: params[:list_id])
+    @lists = List.user_lists(current_user)
+    @list = @lists.find_by(id: params[:list_id])
     render status: :no_content if @list.nil?
     @dispatcher = ListDispatcher.new(@list)
+  end
+
+  def collect_search_items
+    @search_items = Item.where(list: @lists).where.not(list: @list)
+  end
+
+  def search_items
+    from_current_list = @list.items.search(params[:name])
+    from_other_lists = @search_items.search(params[:name]).
+                       select(:id, :name, :list_id).
+                       reject { |i| @list.items.pluck(:name).include? i.name }
+    (from_current_list + from_other_lists).uniq(&:name)
   end
 
   def find_item

@@ -50,6 +50,12 @@ class Item < ApplicationRecord
     deleted.search_by_name(query)
   end
 
+  def compare(comparee, main_list)
+    return -1 if list_id.eql? main_list.id
+    return 0 if list_id.eql? comparee.list_id
+    1
+  end
+
   private
 
   def check_state_transition

@@ -11,6 +11,10 @@ FactoryBot.define do
       list nil
     end
 
+    trait :deleted do
+      aasm_state :deleted
+    end
+
     factory :full_item do
       quantity 14
       price 12.56
@@ -36,7 +40,7 @@ FactoryBot.define do
 
     factory :query_item do
       transient do
-        available_names %w[coconut chocolate apple beer bread cookie aperol brocolli potatoes wine]
+        available_names %w[coconut chocolate apple beer bread cookie aperol potatoes brocolli wine]
       end
 
       sequence(:name) { |n| available_names[n % 10 - 1] || "still water #{n}" }
