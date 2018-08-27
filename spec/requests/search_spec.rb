@@ -17,6 +17,13 @@ RSpec.describe 'Search api interactions' do
   let(:dupe_item2) { create(:item, :deleted, name: 'potatoes', price: 3.33, list: group_list) }
 
   context 'Items#index GET with query param' do
+    it 'does not return non-deleted items when passed empty string query' do
+      get list_items_path(list_queried.id),
+          params: { name: '' }, headers: headers(user)
+      expect(response).to have_http_status :ok
+      expect(json.length).to eq 0
+    end
+
     it 'gets queried items from list when passed search query and responds 200 OK' do
       get list_items_path(list_queried.id),
           params: { name: 'coconut' }, headers: headers(user)

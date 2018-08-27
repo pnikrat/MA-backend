@@ -12,7 +12,7 @@ module V1
 
     def index
       @items =
-        if params[:name].blank?
+        if params[:name].nil?
           @list.items
         else
           search_items
