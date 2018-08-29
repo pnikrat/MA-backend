@@ -33,7 +33,7 @@ module V1
       if @item.persisted?
         @dispatcher.ws_event(:add_item, @item)
         render json: @item, status: :created,
-              location: list_item_url(@list, @item)
+               location: list_item_url(@list, @item)
       else
         render json: errors(@item), status: :bad_request
       end

@@ -19,6 +19,7 @@ class Item < ApplicationRecord
 
   attr_accessor :state
 
+  before_update :increase_frequency
   before_update :check_state_transition
 
   aasm do
@@ -47,7 +48,7 @@ class Item < ApplicationRecord
   end
 
   def self.search(query)
-    deleted.search_by_name(query)
+    deleted.order(frequency: :desc).search_by_name(query)
   end
 
   def compare(comparee, main_list)
@@ -68,6 +69,10 @@ class Item < ApplicationRecord
     else
       throw_invalid_state
     end
+  end
+
+  def increase_frequency
+    self.frequency += 1 if state.eql?('to_buy') && aasm_state.eql?('deleted')
   end
 
   def throw_invalid_state

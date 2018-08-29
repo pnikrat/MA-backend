@@ -239,9 +239,21 @@ RSpec.describe 'Items api interactions' do
       put list_item_path(list.id, second_item), params: buy_item, headers: headers(user)
       expect(response).to have_http_status(:ok)
       expect(second_item.reload).to have_state(:bought)
+      expect(second_item.frequency).to eq 1
       put list_item_path(list.id, second_item), params: undo_item, headers: headers(user)
       expect(response).to have_http_status(:ok)
       expect(second_item.reload).to have_state(:to_buy)
+      expect(second_item.frequency).to eq 1
+    end
+
+    it 'updating state from deleted to to_buy increases frequency on item' do
+      second_item.update aasm_state: :deleted
+      expect {
+        put list_item_path(list.id, second_item),
+            params: { state: 'to_buy' }.to_json, headers: headers(user)
+      }.to change { second_item.reload.frequency }.by 1
+      expect(response).to have_http_status :ok
+      expect(second_item.reload.aasm_state).to eq 'to_buy'
     end
 
     it 'updates a state of an item along with other attributes and responds with 200 OK' do

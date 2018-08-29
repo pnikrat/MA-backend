@@ -34,11 +34,13 @@ RSpec.describe 'Search api interactions' do
     end
 
     it 'gets multiple queried items from list when passed prefix query and responds 200 OK' do
+      list_queried.items.find_by(name: 'aperol').update frequency: 2
       get list_items_path(list_queried.id),
           params: { name: 'ap' }, headers: headers(user)
       expect(response).to have_http_status :ok
       expect(json.length).to eq 2
-      expect(json.map { |i| i[:id] }).to eq search_result.map(&:id)
+      expect(json.first[:name]).to eq 'aperol'
+      expect(json.map { |i| i[:id] }).to eq search_result.reverse.map(&:id)
       expect(json.map { |i| i[:list_id] }).to eq search_result.map(&:list_id)
     end
 
