@@ -12,6 +12,8 @@ test:
   <<: *postgres
   database: magisterka_test
 
+staging:
+  url: <%= ENV['DATABASE_URL'] %>
+
 production:
-  <<: *postgres
-  database: magisterka_production
+  url: <%= ENV['DATABASE_URL'] %>
