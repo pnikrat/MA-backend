@@ -33,9 +33,10 @@ module Backend
     config.i18n.available_locales = [:pl, :en]
     config.i18n.default_locale = :pl
 
+    config.middleware.use Rack::Attack
     config.middleware.insert_before 0, Rack::Cors do
       allow do
-        origins 'http://localhost:3000'
+        origins '*'
         resource '*', methods: :any, headers: :any,
                       expose: %w[access-token token-type client expiry uid]
       end
