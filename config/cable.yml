@@ -6,10 +6,8 @@ test:
 
 staging:
   adapter: redis
-  url: <%= ENV['REDIS_URL'] %>/1
-  channel_prefix: backend_staging
+  url: <%= ENV['REDISTOGO_URL'] %>
 
 production:
   adapter: redis
   url: <%= ENV['REDIS_URL'] %>/1
-  channel_prefix: backend_production
