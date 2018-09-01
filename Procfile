@@ -1,2 +1,2 @@
 web: bin/rails server -p $PORT -e $RAILS_ENV
-worker: bundle exec sidekiq -c 3
+worker: bundle exec sidekiq -q default -q mailers -c 3 -v
