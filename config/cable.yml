@@ -6,7 +6,7 @@ test:
 
 staging:
   adapter: redis
-  url: <%= ENV['REDISTOGO_URL'] %>
+  url: <%= ENV['REDISTOGO_URL'] %>/1
 
 production:
   adapter: redis
